@@ -16,7 +16,7 @@ class BigInt {
 private:
   // TODO: add fields - completed 
   std::vector<uint64_t> magnitude; 
-  bool sign; 
+  bool negative; 
 
 public:
   //! Default constructor.
@@ -187,6 +187,11 @@ public:
 
 private:
   // TODO: add helper functions
+
+  //! Return a bool indicating if the value of this BigInt is 0. 
+  //!
+  //! @return true if the value is 0, false otherwise 
+  bool is_zero() const; 
 };
 
 #endif // BIGINT_H
