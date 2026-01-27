@@ -5,31 +5,31 @@
 #include <iostream> 
 
 BigInt::BigInt() {
-  // TODO: initialize member variables 
+  // Empty vector represents 0 
   magnitude = {}; 
   negative = false; 
 }
 
 BigInt::BigInt(uint64_t val, bool negative) {
-  // TODO: initialize member variables 
   if (val == 0) {
-    magnitude = {}; 
+    // Empty vector represents 0 
+    magnitude = {};   
   } else {
     magnitude.push_back(val); 
   }
+
   this->negative = negative; 
 }
 
 BigInt::BigInt(std::initializer_list<uint64_t> vals, bool negative) {
-  // TODO: initialize member variables 
   for (auto val : vals) {
     magnitude.push_back(val); 
   }
+
   this->negative = negative; 
 }
 
 BigInt::BigInt(const BigInt &other) {
-  // TODO: initialize member variables
   magnitude = other.magnitude; 
   negative = other.negative; 
 }
@@ -37,26 +37,23 @@ BigInt::BigInt(const BigInt &other) {
 BigInt::~BigInt() {
 }
 
-BigInt &BigInt::operator=(const BigInt &rhs)
-{
+BigInt &BigInt::operator=(const BigInt &rhs) {
   // TODO: implement
 }
 
 bool BigInt::is_negative() const {
-  // TODO: implement
   return negative; 
 }
 
 const std::vector<uint64_t> &BigInt::get_bit_vector() const {
-  // TODO: implement
   return magnitude; 
 }
 
 uint64_t BigInt::get_bits(unsigned index) const {
-  // TODO: implement
   if (index >= magnitude.size()) {
     return 0; 
   }
+
   return magnitude[index]; 
 }
 
@@ -70,11 +67,12 @@ BigInt BigInt::operator-(const BigInt &rhs) const {
 }
 
 BigInt BigInt::operator-() const {
-  // TODO: implement
   BigInt ans = *this; 
+  // 0 must keep positive sign 
   if (!is_zero()) {
     ans.negative = !this->negative; 
   }
+
   return ans; 
 }
 
@@ -104,7 +102,6 @@ int BigInt::compare(const BigInt &rhs) const
 }
 
 std::string BigInt::to_hex() const {
-  // TODO: implement
   if (is_zero()) {
     return "0"; 
   }
@@ -118,9 +115,11 @@ std::string BigInt::to_hex() const {
 
   for (auto val = magnitude.rbegin(); val != magnitude.rend(); ++val) {
     if (first) {
+      // No leading 0 digits 
       ss << std::hex << *val; 
       first = false; 
     } else {
+      // Pad with 0s to 16 digits  
       ss << std::hex << std::setfill('0') << std::setw(16) << *val; 
     }
   }
@@ -134,6 +133,7 @@ std::string BigInt::to_dec() const
 }
 
 bool BigInt::is_zero() const {
-  return this->magnitude.empty(); 
+  // 0 is stored as an empty vector 
+  return magnitude.empty(); 
 } 
 
