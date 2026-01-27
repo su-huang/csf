@@ -14,11 +14,11 @@ BigInt::BigInt(uint64_t val, bool negative) {
   if (val == 0) {
     // Empty vector represents 0 
     magnitude = {};   
+    this->negative = false; 
   } else {
     magnitude.push_back(val); 
+    this->negative = negative; 
   }
-
-  this->negative = negative; 
 }
 
 BigInt::BigInt(std::initializer_list<uint64_t> vals, bool negative) {
@@ -26,7 +26,17 @@ BigInt::BigInt(std::initializer_list<uint64_t> vals, bool negative) {
     magnitude.push_back(val); 
   }
 
-  this->negative = negative; 
+  // Remove unnecessary most-significant 0s 
+  while (!magnitude.empty() && magnitude.back() == 0) {
+    magnitude.pop_back(); 
+  }
+
+  // 0 must be non-negative
+  if (is_zero()) {
+    this->negative = false; 
+  } else {
+    this->negative = negative; 
+  }
 }
 
 BigInt::BigInt(const BigInt &other) {
@@ -68,7 +78,7 @@ BigInt BigInt::operator-(const BigInt &rhs) const {
 
 BigInt BigInt::operator-() const {
   BigInt ans = *this; 
-  // 0 must keep positive sign 
+  // 0 must remain non-negative 
   if (!is_zero()) {
     ans.negative = !this->negative; 
   }
