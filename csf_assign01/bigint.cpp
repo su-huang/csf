@@ -25,18 +25,8 @@ BigInt::BigInt(std::initializer_list<uint64_t> vals, bool negative) {
   for (auto val : vals) {
     magnitude.push_back(val); 
   }
-
-  // Remove unnecessary most-significant 0s 
-  while (!magnitude.empty() && magnitude.back() == 0) {
-    magnitude.pop_back(); 
-  }
-
-  // 0 must be non-negative
-  if (is_zero()) {
-    this->negative = false; 
-  } else {
-    this->negative = negative; 
-  }
+  this->negative = negative;
+  clean(); 
 }
 
 BigInt::BigInt(const BigInt &other) {
@@ -48,7 +38,10 @@ BigInt::~BigInt() {
 }
 
 BigInt &BigInt::operator=(const BigInt &rhs) {
-  // TODO: implement
+  magnitude = rhs.magnitude; 
+  negative = rhs.negative; 
+
+  return *this; 
 }
 
 bool BigInt::is_negative() const {
@@ -68,12 +61,36 @@ uint64_t BigInt::get_bits(unsigned index) const {
 }
 
 BigInt BigInt::operator+(const BigInt &rhs) const {
-  // TODO: implement
+  BigInt ans;
+  if (negative == rhs.negative) { 
+    ans.negative = negative; 
+    uint64_t carry = 0; 
+
+    for (unsigned index = 0; index < magnitude.size() || index < rhs.magnitude.size(); index++) {
+      ans.magnitude.push_back(add_magnitudes(get_bits(index), rhs.get_bits(index), carry)); 
+    }
+
+    if (carry) {
+      ans.magnitude.push_back(carry); 
+    }
+  } else {
+    const BigInt &larger = (compare_magnitude(rhs) < 0) ? rhs : *this;
+    const BigInt &smaller = (compare_magnitude(rhs) < 0) ? *this : rhs;
+    ans.negative = larger.negative; 
+    uint64_t borrow = 0; 
+
+    for (unsigned index = 0; index < larger.magnitude.size(); index++) {
+      ans.magnitude.push_back(subtract_magnitudes(larger.get_bits(index), smaller.get_bits(index), borrow)); 
+    }
+  }
+
+  ans.clean(); 
+  
+  return ans; 
 }
 
 BigInt BigInt::operator-(const BigInt &rhs) const {
-  // TODO: implement
-  // Hint: a - b could be computed as a + -b
+  return *this + (-rhs); 
 }
 
 BigInt BigInt::operator-() const {
@@ -86,9 +103,15 @@ BigInt BigInt::operator-() const {
   return ans; 
 }
 
-bool BigInt::is_bit_set(unsigned n) const
-{
-  // TODO: implement
+bool BigInt::is_bit_set(unsigned n) const {
+  unsigned word_index = n / 64; 
+  unsigned bit_index = n % 64; 
+
+  if (word_index >= magnitude.size()) {
+    return false; 
+  }
+
+  return ((magnitude[word_index] >> bit_index) & 1) == 1; 
 }
 
 BigInt BigInt::operator<<(unsigned n) const
@@ -106,9 +129,12 @@ BigInt BigInt::operator/(const BigInt &rhs) const
   // TODO: implement
 }
 
-int BigInt::compare(const BigInt &rhs) const
-{
-  // TODO: implement
+int BigInt::compare(const BigInt &rhs) const {
+  if (negative != rhs.negative) {
+    return (negative ? -1 : 1); 
+  }
+
+  return (negative ? -compare_magnitude(rhs) : compare_magnitude(rhs)); 
 }
 
 std::string BigInt::to_hex() const {
@@ -145,5 +171,52 @@ std::string BigInt::to_dec() const
 bool BigInt::is_zero() const {
   // 0 is stored as an empty vector 
   return magnitude.empty(); 
+} 
+
+uint64_t BigInt::add_magnitudes(uint64_t a, uint64_t b, uint64_t &carry) const {
+  uint64_t sum = a + b + carry; 
+  if (sum < a || (carry && sum == a)) {
+    carry = 1; 
+  } else {
+    carry = 0; 
+  }
+
+  return sum; 
+}
+
+uint64_t BigInt::subtract_magnitudes(uint64_t a, uint64_t b, uint64_t &borrow) const {
+  uint64_t difference = a - b - borrow; 
+  if (a - borrow < b) {
+    borrow = 1; 
+  } else {
+    borrow = 0; 
+  }
+
+  return difference; 
+}
+
+int BigInt::compare_magnitude(const BigInt &rhs) const { 
+  if (magnitude.size() > rhs.magnitude.size()) {
+    return 1; 
+  } else if (magnitude.size() < rhs.magnitude.size()) {
+    return -1; 
+  }
+
+  for (int index = magnitude.size() - 1; index >= 0; index--) {
+    if (get_bits(index) != rhs.get_bits(index)) {
+      return (get_bits(index) > rhs.get_bits(index) ? 1 : -1); 
+    }
+  }
+
+  return 0; 
+}
+
+void BigInt::clean() {
+  while (!magnitude.empty() && magnitude.back() == 0) {
+    magnitude.pop_back(); 
+  }
+  if (magnitude.empty()) {
+    negative = false; 
+  }
 } 
 

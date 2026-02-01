@@ -191,6 +191,36 @@ private:
   //!
   //! @return true if the value is 0, false otherwise 
   bool is_zero() const; 
+
+  //! Return a uint64_t representing the sum, and update the uint64_t carry. 
+  //!
+  //! @param a the first value to add
+  //! @param b the second value to add 
+  //! @param carry the value being carried over 
+  //! @return the value of the sum 
+  uint64_t add_magnitudes(uint64_t a, uint64_t b, uint64_t &carry) const; 
+
+  //! Return a unit64_t representing the difference, and update the unit64_t borrow. 
+  //!
+  //! @param a the larger value to subtract from 
+  //! @param b the smaller value to subtract 
+  //! @param borrow the value previously borrowed from a 
+  //! @return the value of the difference  
+  uint64_t subtract_magnitudes(uint64_t a, uint64_t b, uint64_t &borrow) const; 
+
+  //! Compare magnitude of two BigInt values, returning
+  //!   - negative if magnitude lhs < magnitude rhs
+  //!   - 0 if magnitude lhs = magnitude rhs
+  //!   - positive if magnitude lhs > magnitude rhs
+  //!
+  //! @param rhs the right-hand side BigInt value (the left hand value
+  //!            is the implicit receiver object, i.e., `*this`)
+  //! @return the result of the comparison (negative means less,
+  //!         0 means equal, positive means greater)
+  int compare_magnitude(const BigInt &rhs) const;
+
+  //! Remove leading 0s
+  void clean(); 
 };
 
 #endif // BIGINT_H
