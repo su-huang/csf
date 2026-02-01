@@ -104,19 +104,48 @@ BigInt BigInt::operator-() const {
 }
 
 bool BigInt::is_bit_set(unsigned n) const {
-  unsigned word_index = n / 64; 
+  unsigned unit_index = n / 64; 
   unsigned bit_index = n % 64; 
 
-  if (word_index >= magnitude.size()) {
+  if (unit_index >= magnitude.size()) {
     return false; 
   }
 
-  return ((magnitude[word_index] >> bit_index) & 1) == 1; 
+  return ((magnitude[unit_index] >> bit_index) & 1) == 1; 
 }
 
-BigInt BigInt::operator<<(unsigned n) const
-{
-  // TODO: implement
+BigInt BigInt::operator<<(unsigned n) const {
+  if (negative) {
+    throw std::invalid_argument("Cannot perform left shift on negative valeus"); 
+  }
+
+  if (is_zero() || n == 0) {
+    return *this; 
+  }
+
+  BigInt ans; 
+  unsigned units = n / 64; 
+  unsigned bits = n % 64; 
+
+  for (unsigned i = 0; i < units; i++) {
+    ans.magnitude.push_back((uint64_t) 0); 
+  }
+
+  uint64_t carry = 0; 
+  for (auto curr : magnitude) {
+    ans.magnitude.push_back((curr << bits) | carry); 
+    if (bits != 0) {
+      carry = curr >> (64 - bits); 
+    } 
+  }
+
+  if (carry) {
+    ans.magnitude.push_back(carry); 
+  }
+
+  ans.negative = false; 
+  ans.clean(); 
+  return ans; 
 }
 
 BigInt BigInt::operator*(const BigInt &rhs) const
