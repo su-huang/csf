@@ -10,6 +10,7 @@
 #include <sstream> 
 #include <iomanip> 
 #include <iostream> 
+#include <algorithm>
 
 BigInt::BigInt() {
   // Empty vector represents 0 
@@ -234,7 +235,7 @@ std::string BigInt::to_hex() const {
   std::stringstream ss; 
   bool first = true; 
 
-  if (is_negative()) {
+  if (negative) {
     ss << "-"; 
   }
 
@@ -252,9 +253,30 @@ std::string BigInt::to_hex() const {
   return ss.str(); 
 }
 
-std::string BigInt::to_dec() const
-{
-  // TODO: implement
+std::string BigInt::to_dec() const {
+  if (is_zero()) {
+    return "0"; 
+  }
+
+  std::stringstream ss; 
+  BigInt num = *this; 
+  num.negative = false; 
+  BigInt ten(10); 
+
+  while (!num.is_zero()) {
+    BigInt q = num / ten; 
+    BigInt r = num - (ten * q); 
+    ss << r.get_bits(0); 
+    num = q; 
+  }
+
+  if (negative) {
+    ss << "-"; 
+  }
+
+  std::string ans = ss.str();  
+  std::reverse(ans.begin(), ans.end()); 
+  return ans; 
 }
 
 bool BigInt::is_zero() const {
