@@ -142,9 +142,7 @@ BigInt BigInt::operator<<(unsigned n) const {
   uint64_t carry = 0; 
   for (auto curr : magnitude) {
     ans.magnitude.push_back((curr << bits) | carry); 
-    if (bits != 0) {
-      carry = curr >> (64 - bits); 
-    } 
+    carry = (bits == 0) ? 0 : (curr >> (64 - bits)); 
   }
 
   if (carry) {
@@ -167,8 +165,7 @@ BigInt BigInt::operator*(const BigInt &rhs) const {
   BigInt other = rhs; 
   other.negative = false; 
 
-  unsigned bits = magnitude.size() * 64; 
-  for (unsigned i = 0; i < bits; i++) {
+  for (unsigned i = 0; i < magnitude.size() * 64; i++) {
     if (is_bit_set(i)) {
       ans = ans + (other << i); 
     }
