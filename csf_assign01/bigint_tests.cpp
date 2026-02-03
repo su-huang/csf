@@ -1,3 +1,10 @@
+/*
+ * Tests for Big Integers
+ * CSF Assignment 1 
+ * Su Huang 
+ * shuan148@jhu.edu
+ */
+ 
 #include <stdexcept>
 #include <sstream>
 #include <iostream>

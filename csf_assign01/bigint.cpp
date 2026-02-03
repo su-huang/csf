@@ -1,3 +1,10 @@
+/*
+ * Complete implementation for Big Integers
+ * CSF Assignment 1 
+ * Su Huang 
+ * shuan148@jhu.edu
+ */
+ 
 #include <cassert>
 #include "bigint.h"
 #include <sstream> 

@@ -1,3 +1,10 @@
+/*
+ * All declarations for Big Integers
+ * CSF Assignment 1 
+ * Su Huang 
+ * shuan148@jhu.edu
+ */
+ 
 #ifndef BIGINT_H
 #define BIGINT_H
 
