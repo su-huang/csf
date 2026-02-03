@@ -85,6 +85,9 @@ void test_initlist_ctor_2(TestObjs *objs);
 void test_unary_minus_1(TestObjs *objs); 
 void test_unary_minus_2(TestObjs *objs); 
 void test_assignment_op(TestObjs *objs); 
+void test_get_bit_vector(TestObjs *objs); 
+void test_add_5(TestObjs *objs); 
+void test_mul_3(TestObjs *objs); 
 
 int main(int argc, char **argv) {
   if (argc > 1) {
@@ -125,6 +128,9 @@ int main(int argc, char **argv) {
   TEST(test_unary_minus_1); 
   TEST(test_unary_minus_2); 
   TEST(test_assignment_op); 
+  TEST(test_get_bit_vector); 
+  TEST(test_add_5); 
+  TEST(test_mul_3); 
 
   TEST_FINI();
 }
@@ -149,7 +155,8 @@ TestObjs::TestObjs()
   , leading_zero({ 0UL, 1UL })
   , trailing_zero({ 1UL, 0UL }, true)
   , negative_with_zeros({ 0UL, 2UL, 0UL, 1UL }, true)
-  , u64_max_plus_1({ 1UL, 1UL })
+  , negative_u64_max({ 0xFFFFFFFFFFFFFFFFUL }, true)
+  , u64_max_plus_1({ 0UL, 1UL })
   , negative_u64_max_minus_1({ 0xFFFFFFFFFFFFFFFFUL - 1 }, true)
   , two_pow_128({ 0UL, 0UL, 1UL })
   , negative_two_pow_128({ 0UL, 0UL, 1UL }, true) 
@@ -332,7 +339,6 @@ void test_add_4(TestObjs *) {
     check_contents(result, {0xb59e87ef7168ae78UL, 0xeda1de5b1d8a2999UL, 0x582fd87e1ac8af37UL, 0x5a15629c64224557UL, 0x3ec79d142be30f0UL, 0x33e531c4dbbd2d3dUL, 0x946004cdecfe6d47UL, 0x3e67713d575ed0b1UL, 0xcc7edfb347fcd8b4UL, 0x5978260d5ecf00a7UL, 0xe242586be49c40c1UL, 0xf734798ec1dd4ddaUL, 0x76394dUL});
     ASSERT(result.is_negative());
   }
-
 }
 
 void test_sub_1(TestObjs *objs) {
@@ -703,4 +709,79 @@ void test_assignment_op(TestObjs *objs) {
   result5 = result5; 
   check_contents(result5, { 0UL, 1UL }); 
   ASSERT(result5.is_negative()); 
+}
+
+void test_get_bit_vector(TestObjs *objs) {
+  // Tests get_bit_vector and ensures it's a reference 
+  BigInt result1 = objs->zero; 
+  const auto &vec1 = result1.get_bit_vector(); 
+  ASSERT(vec1.empty()); 
+
+  BigInt result2 = objs->negative_two_pow_64; 
+  const auto &vec2 = result2.get_bit_vector(); 
+  const auto &vec3 = result2.get_bit_vector(); 
+  ASSERT(vec2.size() == 2); 
+  ASSERT(vec2[0] == 0UL); 
+  ASSERT(vec2[1] == 1UL);
+  ASSERT(&vec2 == &vec3); 
+
+  BigInt result3 = objs->negative_three; 
+  BigInt result4 = objs->three; 
+  const auto &vec4 = result3.get_bit_vector(); 
+  const auto &vec5 = result4.get_bit_vector(); 
+  ASSERT(vec4 == vec5); 
+}
+
+void test_get_bits_2(TestObjs *objs) {
+  // Additional tests for get_bits 
+  ASSERT(0UL == objs->u64_max_plus_1.get_bits(0)); 
+  ASSERT(1UL == objs->u64_max_plus_1.get_bits(1)); 
+  ASSERT(0UL == objs->u64_max_plus_1.get_bits(2)); 
+
+  ASSERT(1000UL == objs->ten_pow_3.get_bits(0));
+
+  ASSERT(0xFFFFFFFFFFFFFFFFUL - 1  == objs->negative_u64_max_minus_1.get_bits(0)); 
+  ASSERT(objs->negative_u64_max_minus_1.get_bits(0) == -objs->negative_u64_max_minus_1.get_bits(0)); 
+}
+
+void test_add_5(TestObjs *objs) {
+  // Additional tests for addition  
+  BigInt result1 = objs->u64_max + objs->negative_u64_max; 
+  check_contents(result1, { }); 
+  ASSERT(!result1.is_negative()); 
+
+  BigInt result2 = objs->two_pow_64 + objs->two_pow_64; 
+  check_contents(result2, { 0UL, 2UL}); 
+  ASSERT(!result2.is_negative()); 
+
+  BigInt result3 = objs->negative_nine + objs->three; 
+  check_contents(result3, { 6UL }); 
+  ASSERT(result3.is_negative()); 
+
+  BigInt result4 = objs->two_pow_64 + objs->one; 
+  check_contents(result4, { 1UL, 1UL }); 
+  ASSERT(!result4.is_negative()); 
+}
+
+void test_mul_3(TestObjs *objs) {
+  // Additional tests for multiplication 
+  BigInt result1 = objs->three * objs->negative_nine; 
+  check_contents(result1, { 27UL }); 
+  ASSERT(result1.is_negative()); 
+
+  BigInt result2 = objs->negative_three * objs->negative_nine; 
+  check_contents(result2, { 27UL }); 
+  ASSERT(!result2.is_negative()); 
+
+  BigInt result3 = objs->zero * objs->two_pow_128; 
+  check_contents(result3, { }); 
+  ASSERT(!result3.is_negative()); 
+
+  BigInt result4 = objs->u64_max * objs->negative_u64_max_minus_1; 
+  check_contents(result4, { 2UL, 0xFFFFFFFFFFFFFFFDUL }); 
+  ASSERT(result4.is_negative()); 
+
+  BigInt result5 = objs->two_pow_64 * objs->two; 
+  check_contents(result5, { 0UL, 2UL }); 
+  ASSERT(!result5.is_negative()); 
 }
