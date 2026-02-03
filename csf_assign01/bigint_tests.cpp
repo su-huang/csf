@@ -22,11 +22,19 @@ struct TestObjs {
   BigInt negative_nine;
   BigInt negative_three;
   BigInt nine;
+
   // TODO: add additional test fixture objects
   BigInt all_zeros;
   BigInt leading_zero;
   BigInt trailing_zero;
   BigInt negative_with_zeros;
+  BigInt negative_u64_max; 
+  BigInt u64_max_plus_1; 
+  BigInt negative_u64_max_minus_1;  
+  BigInt two_pow_128; 
+  BigInt negative_two_pow_128; 
+  BigInt negative_ten_pow_2; 
+  BigInt ten_pow_3; 
 
   TestObjs();
 };
@@ -71,10 +79,12 @@ void test_to_hex_1(TestObjs *objs);
 void test_to_hex_2(TestObjs *objs);
 void test_to_dec_1(TestObjs *objs);
 void test_to_dec_2(TestObjs *objs);
+
 // TODO: declare additional test functions
 void test_initlist_ctor_2(TestObjs *objs); 
 void test_unary_minus_1(TestObjs *objs); 
 void test_unary_minus_2(TestObjs *objs); 
+void test_assignment_op(TestObjs *objs); 
 
 int main(int argc, char **argv) {
   if (argc > 1) {
@@ -114,6 +124,7 @@ int main(int argc, char **argv) {
   TEST(test_initlist_ctor_2); 
   TEST(test_unary_minus_1); 
   TEST(test_unary_minus_2); 
+  TEST(test_assignment_op); 
 
   TEST_FINI();
 }
@@ -132,11 +143,18 @@ TestObjs::TestObjs()
   , negative_nine(9UL, true)
   , negative_three(3UL, true)
   , nine(9UL)
+
   // TODO: initialize additional test fixture objects
-  , all_zeros({0UL, 0UL, 0UL}, true)
-  , leading_zero({0UL, 1UL})
-  , trailing_zero({1UL, 0UL}, true)
-  , negative_with_zeros({0UL, 2UL, 0UL, 1UL}, true)
+  , all_zeros({ 0UL, 0UL, 0UL }, true)
+  , leading_zero({ 0UL, 1UL })
+  , trailing_zero({ 1UL, 0UL }, true)
+  , negative_with_zeros({ 0UL, 2UL, 0UL, 1UL }, true)
+  , u64_max_plus_1({ 1UL, 1UL })
+  , negative_u64_max_minus_1({ 0xFFFFFFFFFFFFFFFFUL - 1 }, true)
+  , two_pow_128({ 0UL, 0UL, 1UL })
+  , negative_two_pow_128({ 0UL, 0UL, 1UL }, true) 
+  , negative_ten_pow_2({ 100UL }, true)
+  , ten_pow_3({ 1000UL }) 
 {
 }
 
@@ -608,6 +626,7 @@ void test_to_dec_2(TestObjs *) {
 
 // TODO: implement additional test functions
 void test_initlist_ctor_2(TestObjs *objs) {
+  // Tests constructor with 0 values 
   check_contents(objs->all_zeros, { }); 
   ASSERT(!objs->all_zeros.is_negative()); 
 
@@ -622,6 +641,7 @@ void test_initlist_ctor_2(TestObjs *objs) {
 }
 
 void test_unary_minus_1(TestObjs *objs) {
+  // Tests unary minus with regular value 
   BigInt result1 = -objs->zero; 
   check_contents(result1, { 0UL }); 
   ASSERT(!result1.is_negative()); 
@@ -637,22 +657,50 @@ void test_unary_minus_1(TestObjs *objs) {
   BigInt result4 = -objs->negative_three; 
   check_contents(result4, { 3UL }); 
   ASSERT(!result4.is_negative()); 
+
+  BigInt result5 = -objs->negative_u64_max_minus_1;  
+  check_contents(result5, { 0xFFFFFFFFFFFFFFFFUL - 1 }); 
+  ASSERT(!result5.is_negative()); 
+
+  BigInt result6 = -objs->two_pow_128; 
+  check_contents(result6, { 0UL, 0UL, 1UL }); 
+  ASSERT(result6.is_negative()); 
 } 
 
 void test_unary_minus_2(TestObjs *objs) {
-  BigInt result5 = -objs->all_zeros; 
-  check_contents(result5, { }); 
-  ASSERT(!result5.is_negative()); 
+  // Tests unary minus with 0 values 
+  BigInt result1 = -objs->all_zeros; 
+  check_contents(result1, { }); 
+  ASSERT(!result1.is_negative()); 
 
-  BigInt result6 = -objs->leading_zero; 
-  check_contents(result6, { 0UL, 1UL });
-  ASSERT(result6.is_negative());
+  BigInt result2 = -objs->leading_zero; 
+  check_contents(result2, { 0UL, 1UL });
+  ASSERT(result2.is_negative());
 
-  BigInt result7 = -objs->trailing_zero; 
-  check_contents(result7, { 1UL }); 
-  ASSERT(!result7.is_negative());
+  BigInt result3 = -objs->trailing_zero; 
+  check_contents(result3, { 1UL }); 
+  ASSERT(!result3.is_negative());
 
-  BigInt result8 = -objs->negative_with_zeros; 
-  check_contents(result8, { 0UL, 2UL, 0UL, 1UL });
-  ASSERT(!result8.is_negative());
+  BigInt result4 = -objs->negative_with_zeros; 
+  check_contents(result4, { 0UL, 2UL, 0UL, 1UL });
+  ASSERT(!result4.is_negative());
+}
+
+void test_assignment_op(TestObjs *objs) {
+  // Tests assignment operator 
+  BigInt result1 = objs->zero; 
+  BigInt result2 = result1; 
+  check_contents(result2, { }); 
+  ASSERT(!result2.is_negative()); 
+
+  BigInt result3 = objs->negative_u64_max_minus_1; 
+  BigInt result4 = objs->two_pow_128; 
+  result4 = result3; 
+  check_contents(result4, { 0xFFFFFFFFFFFFFFFFUL - 1 }); 
+  ASSERT(result3.is_negative()); 
+
+  BigInt result5 = objs->negative_two_pow_64; 
+  result5 = result5; 
+  check_contents(result5, { 0UL, 1UL }); 
+  ASSERT(result5.is_negative()); 
 }
