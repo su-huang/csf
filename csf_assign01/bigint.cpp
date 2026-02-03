@@ -116,7 +116,7 @@ bool BigInt::is_bit_set(unsigned n) const {
 
 BigInt BigInt::operator<<(unsigned n) const {
   if (negative) {
-    throw std::invalid_argument("Cannot perform left shift on negative valeus"); 
+    throw std::invalid_argument("Cannot perform left shift on negative values"); 
   }
 
   if (is_zero() || n == 0) {
@@ -171,9 +171,44 @@ BigInt BigInt::operator*(const BigInt &rhs) const {
   return ans; 
 }
 
-BigInt BigInt::operator/(const BigInt &rhs) const
-{
-  // TODO: implement
+BigInt BigInt::operator/(const BigInt &rhs) const {
+  if (rhs.is_zero()) {
+    throw std::invalid_argument("Cannot divide by 0"); 
+  }
+
+  if (is_zero()) {
+    return BigInt(); 
+  }
+
+  // Make unsigned copy to prevent sign implications 
+  BigInt n = *this; 
+  n.negative = false; 
+  BigInt m = rhs; 
+  m.negative = false; 
+
+  BigInt ans; 
+  
+  BigInt low(0);
+  BigInt high = *this; 
+  high.negative = false; 
+  
+  while (low.compare(high) <= 0) {
+    BigInt mid = (low + high).right_shift(); 
+    BigInt product = mid * m; 
+
+    int comp = product.compare(n); 
+
+    if (comp <= 0) {
+      ans = mid; 
+      low = mid + BigInt(1); 
+    } else {
+      high = mid - BigInt(1); 
+    }
+  }
+
+  ans.negative = (negative != rhs.negative); 
+  ans.clean(); 
+  return ans; 
 }
 
 int BigInt::compare(const BigInt &rhs) const {
@@ -262,8 +297,27 @@ void BigInt::clean() {
   while (!magnitude.empty() && magnitude.back() == 0) {
     magnitude.pop_back(); 
   }
+
   if (magnitude.empty()) {
     negative = false; 
   }
 } 
+
+BigInt BigInt::right_shift() const {
+  if (is_zero()) {
+    return *this; 
+  }
+
+  BigInt ans = *this; 
+  uint64_t carry = 0; 
+
+  // Iterate from MSB to LSB 
+  for (int i = magnitude.size() - 1; i >= 0; i--) {
+    ans.magnitude[i] = (magnitude[i] >> 1) | carry; 
+    carry = (magnitude[i] & 1) ? ((uint64_t) 1 << 63) : 0; 
+  }
+
+  ans.clean(); 
+  return ans; 
+}
 
