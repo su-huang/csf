@@ -69,8 +69,8 @@ void test_div_1(TestObjs *objs);
 void test_div_2(TestObjs *objs);
 void test_to_hex_1(TestObjs *objs);
 void test_to_hex_2(TestObjs *objs);
-// void test_to_dec_1(TestObjs *objs);
-// void test_to_dec_2(TestObjs *objs);
+void test_to_dec_1(TestObjs *objs);
+void test_to_dec_2(TestObjs *objs);
 // TODO: declare additional test functions
 void test_initlist_ctor_2(TestObjs *objs); 
 void test_unary_minus_1(TestObjs *objs); 
@@ -108,8 +108,8 @@ int main(int argc, char **argv) {
   TEST(test_div_2);
   TEST(test_to_hex_1);
   TEST(test_to_hex_2);
-  // TEST(test_to_dec_1);
-  // TEST(test_to_dec_2);
+  TEST(test_to_dec_1);
+  TEST(test_to_dec_2);
   // TODO: add calls to TEST for additional test functions
   TEST(test_initlist_ctor_2); 
   TEST(test_unary_minus_1); 
