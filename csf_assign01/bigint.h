@@ -221,6 +221,12 @@ private:
 
   //! Remove leading 0s
   void clean(); 
+
+  //! Right shift by 1 bit. 
+  //!
+  //! @return BigInt value representing the result of shifting this
+  //!         value right by 1 bit 
+  BigInt right_shift() const;
 };
 
 #endif // BIGINT_H
