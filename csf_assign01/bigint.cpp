@@ -148,9 +148,27 @@ BigInt BigInt::operator<<(unsigned n) const {
   return ans; 
 }
 
-BigInt BigInt::operator*(const BigInt &rhs) const
-{
-  // TODO: implement
+BigInt BigInt::operator*(const BigInt &rhs) const {
+  if (is_zero() || rhs.is_zero()) {
+    return BigInt(); 
+  }
+
+  BigInt ans;  
+
+  // Create a non-negative copy so we can perform left shift 
+  BigInt other = rhs; 
+  other.negative = false; 
+
+  unsigned bits = magnitude.size() * 64; 
+  for (unsigned i = 0; i < bits; i++) {
+    if (is_bit_set(i)) {
+      ans = ans + (other << i); 
+    }
+  }
+
+  ans.negative = (negative != rhs.negative);
+  ans.clean(); 
+  return ans; 
 }
 
 BigInt BigInt::operator/(const BigInt &rhs) const
