@@ -91,6 +91,7 @@ void test_lshift_3(TestObjs *objs);
 void test_mul_3(TestObjs *objs); 
 void test_div_3(TestObjs *objs); 
 void test_to_hex_3(TestObjs *objs); 
+void test_to_dec_3(TestObjs *objs); 
 
 int main(int argc, char **argv) {
   if (argc > 1) {
@@ -138,6 +139,7 @@ int main(int argc, char **argv) {
   TEST(test_mul_3); 
   TEST(test_div_3); 
   TEST(test_to_hex_3); 
+  TEST(test_to_dec_3); 
 
   TEST_FINI();
 }
@@ -948,4 +950,31 @@ void test_to_hex_3(TestObjs *objs) {
 
   std::string result6 = objs->negative_ten_pow_2.to_hex(); 
   ASSERT("-64" == result6); 
+}
+
+void test_to_dec_3(TestObjs *objs) {
+  // Additional tests for conversion to decimal 
+  std::string result1 = objs->all_zeros.to_dec(); 
+  ASSERT("0" == result1); 
+
+  std::string result2 = objs->three.to_dec(); 
+  ASSERT("3" == result2); 
+
+  std::string result3 = objs->negative_nine.to_dec(); 
+  ASSERT("-9" == result3); 
+
+  std::string result4 = objs->negative_ten_pow_2.to_dec(); 
+  ASSERT("-100" == result4); 
+
+  std::string result5 = objs->two_pow_128.to_dec(); 
+  ASSERT("340282366920938463463374607431768211456" == result5); 
+
+  std::string result6 = objs->negative_u64_max.to_dec(); 
+  ASSERT("-18446744073709551615" == result6); 
+
+  std::string result7 = (objs->two_pow_64 * objs->two).to_dec(); 
+  ASSERT("36893488147419103232" == result7); 
+
+  std::string result8 = (objs->negative_ten_pow_2 / objs->three).to_dec(); 
+  ASSERT("-33" == result8); 
 }
