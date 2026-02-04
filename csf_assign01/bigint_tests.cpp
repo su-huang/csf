@@ -23,7 +23,6 @@ struct TestObjs {
   BigInt negative_three;
   BigInt nine;
 
-  // TODO: add additional test fixture objects
   BigInt all_zeros;
   BigInt leading_zero;
   BigInt trailing_zero;
@@ -78,8 +77,6 @@ void test_to_hex_1(TestObjs *objs);
 void test_to_hex_2(TestObjs *objs);
 void test_to_dec_1(TestObjs *objs);
 void test_to_dec_2(TestObjs *objs);
-
-// TODO: declare additional test functions
 void test_initlist_ctor_2(TestObjs *objs); 
 void test_unary_minus_1(TestObjs *objs); 
 void test_unary_minus_2(TestObjs *objs); 
@@ -127,7 +124,6 @@ int main(int argc, char **argv) {
   TEST(test_to_hex_2);
   TEST(test_to_dec_1);
   TEST(test_to_dec_2);
-  // TODO: add calls to TEST for additional test functions
   TEST(test_initlist_ctor_2); 
   TEST(test_unary_minus_1); 
   TEST(test_unary_minus_2); 
@@ -158,8 +154,6 @@ TestObjs::TestObjs()
   , negative_nine(9UL, true)
   , negative_three(3UL, true)
   , nine(9UL)
-
-  // TODO: initialize additional test fixture objects
   , all_zeros({ 0UL, 0UL, 0UL }, true)
   , leading_zero({ 0UL, 1UL })
   , trailing_zero({ 1UL, 0UL }, true)
@@ -638,7 +632,6 @@ void test_to_dec_2(TestObjs *) {
   }
 }
 
-// TODO: implement additional test functions
 void test_initlist_ctor_2(TestObjs *objs) {
   // Tests constructor with 0 values 
   check_contents(objs->all_zeros, { }); 
