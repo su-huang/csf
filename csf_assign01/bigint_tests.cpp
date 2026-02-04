@@ -90,6 +90,7 @@ void test_sub_5(TestObjs *objs);
 void test_lshift_3(TestObjs *objs); 
 void test_mul_3(TestObjs *objs); 
 void test_div_3(TestObjs *objs); 
+void test_to_hex_3(TestObjs *objs); 
 
 int main(int argc, char **argv) {
   if (argc > 1) {
@@ -136,6 +137,7 @@ int main(int argc, char **argv) {
   TEST(test_lshift_3); 
   TEST(test_mul_3); 
   TEST(test_div_3); 
+  TEST(test_to_hex_3); 
 
   TEST_FINI();
 }
@@ -925,4 +927,25 @@ void test_div_3(TestObjs *objs) {
     objs->zero / objs->zero; 
     FAIL("dividing by 0 should throw an exception");
   } catch (std::invalid_argument &ex) {}
+}
+
+void test_to_hex_3(TestObjs *objs) {
+  // Additional tests for conversion to hex
+  std::string result1 = objs->all_zeros.to_hex(); 
+  ASSERT("0" == result1); 
+
+  std::string result2 = objs->negative_nine.to_hex(); 
+  ASSERT("-9" == result2); 
+
+  std::string result3 = objs->two_pow_64.to_hex(); 
+  ASSERT("10000000000000000" == result3); 
+
+  std::string result4 = objs->negative_two_pow_64.to_hex(); 
+  ASSERT("-10000000000000000" == result4); 
+
+  std::string result5 = objs->ten_pow_3.to_hex(); 
+  ASSERT("3e8" == result5); 
+
+  std::string result6 = objs->negative_ten_pow_2.to_hex(); 
+  ASSERT("-64" == result6); 
 }
