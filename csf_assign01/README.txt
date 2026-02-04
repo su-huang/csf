@@ -1,4 +1,4 @@
-Team Member: Su Huang (Implemented all functions)
+Team Member: Su Huang, shuan148@jh.edu (Implemented all functions)
 
 Implementation Notes
 - 0 is stored as a non-negative empty vector 

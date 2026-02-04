@@ -2,7 +2,7 @@
  * All declarations for Big Integers
  * CSF Assignment 1 
  * Su Huang 
- * shuan148@jhu.edu
+ * shuan148@jh.edu
  */
  
 #ifndef BIGINT_H
