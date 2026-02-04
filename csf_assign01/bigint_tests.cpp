@@ -33,6 +33,7 @@ struct TestObjs {
   BigInt negative_two_pow_128; 
   BigInt negative_ten_pow_2; 
   BigInt ten_pow_3; 
+  BigInt negative_one; 
 
   TestObjs();
 };
@@ -77,18 +78,35 @@ void test_to_hex_1(TestObjs *objs);
 void test_to_hex_2(TestObjs *objs);
 void test_to_dec_1(TestObjs *objs);
 void test_to_dec_2(TestObjs *objs);
-void test_initlist_ctor_2(TestObjs *objs); 
-void test_unary_minus_1(TestObjs *objs); 
-void test_unary_minus_2(TestObjs *objs); 
+void test_initlist_ctor_basic(TestObjs *objs); 
+void test_initlist_ctor_normalization(TestObjs *objs); 
+void test_unary_minus_standard(TestObjs *objs); 
 void test_assignment_op(TestObjs *objs); 
 void test_get_bit_vector(TestObjs *objs); 
-void test_add_5(TestObjs *objs); 
-void test_sub_5(TestObjs *objs); 
-void test_lshift_3(TestObjs *objs); 
-void test_mul_3(TestObjs *objs); 
-void test_div_3(TestObjs *objs); 
-void test_to_hex_3(TestObjs *objs); 
-void test_to_dec_3(TestObjs *objs); 
+void test_get_bits_edge_cases(TestObjs *objs); 
+void test_add_same_sign(TestObjs *objs); 
+void test_add_opp_sign(TestObjs *objs); 
+void test_add_overflow(TestObjs *objs); 
+void test_add_underflow(TestObjs *objs); 
+void test_sub_same_sign(TestObjs *objs); 
+void test_sub_opp_sign(TestObjs *objs); 
+void test_sub_overflow(TestObjs *objs); 
+void test_sub_underflow(TestObjs *objs); 
+void test_lshift_standard(TestObjs *objs); 
+void test_lshift_units(TestObjs *objs);
+void test_lshift_large(TestObjs *objs);
+void test_lshift_exception(TestObjs *objs);
+void test_mul_same_sign(TestObjs *objs);
+void test_mul_opp_sign(TestObjs *objs);
+void test_mul_overflow(TestObjs *objs);
+void test_div_same_sign(TestObjs *objs); 
+void test_div_opp_sign(TestObjs *objs); 
+void test_div_truncation(TestObjs *objs); 
+void test_div_exception(TestObjs *objs); 
+void test_to_hex_basic(TestObjs *objs); 
+void test_to_hex_large(TestObjs *objs); 
+void test_to_dec_basic(TestObjs *objs); 
+void test_to_dec_large(TestObjs *objs); 
 
 int main(int argc, char **argv) {
   if (argc > 1) {
@@ -124,18 +142,36 @@ int main(int argc, char **argv) {
   TEST(test_to_hex_2);
   TEST(test_to_dec_1);
   TEST(test_to_dec_2);
-  TEST(test_initlist_ctor_2); 
-  TEST(test_unary_minus_1); 
-  TEST(test_unary_minus_2); 
+  TEST(test_initlist_ctor_basic); 
+  TEST(test_initlist_ctor_normalization); 
+  TEST(test_unary_minus_standard); 
   TEST(test_assignment_op); 
   TEST(test_get_bit_vector); 
-  TEST(test_add_5); 
-  TEST(test_sub_5);
-  TEST(test_lshift_3); 
-  TEST(test_mul_3); 
-  TEST(test_div_3); 
-  TEST(test_to_hex_3); 
-  TEST(test_to_dec_3); 
+  TEST(test_get_bits_edge_cases);
+  TEST(test_add_same_sign);  
+  TEST(test_add_same_sign); 
+  TEST(test_add_opp_sign); 
+  TEST(test_add_overflow); 
+  TEST(test_add_underflow); 
+  TEST(test_sub_same_sign); 
+  TEST(test_sub_opp_sign); 
+  TEST(test_sub_overflow); 
+  TEST(test_sub_underflow); 
+  TEST(test_lshift_standard); 
+  TEST(test_lshift_units);
+  TEST(test_lshift_large);
+  TEST(test_lshift_exception);
+  TEST(test_mul_same_sign);
+  TEST(test_mul_opp_sign);
+  TEST(test_mul_overflow);
+  TEST(test_div_same_sign); 
+  TEST(test_div_opp_sign); 
+  TEST(test_div_truncation); 
+  TEST(test_div_exception); 
+  TEST(test_to_hex_basic); 
+  TEST(test_to_hex_large); 
+  TEST(test_to_dec_basic); 
+  TEST(test_to_dec_large); 
 
   TEST_FINI();
 }
@@ -164,6 +200,7 @@ TestObjs::TestObjs()
   , negative_two_pow_128({ 0UL, 0UL, 1UL }, true) 
   , negative_ten_pow_2({ 100UL }, true)
   , ten_pow_3({ 1000UL }) 
+  , negative_one({ 1UL }, true)
 {
 }
 
@@ -632,65 +669,56 @@ void test_to_dec_2(TestObjs *) {
   }
 }
 
-void test_initlist_ctor_2(TestObjs *objs) {
-  // Tests constructor with 0 values 
+void test_initlist_ctor_basic(TestObjs *objs) {
+  // Tests constructor with simple values 
   check_contents(objs->all_zeros, { }); 
   ASSERT(!objs->all_zeros.is_negative()); 
 
+  check_contents(objs->negative_with_zeros, { 0UL, 2UL, 0UL, 1UL });
+  ASSERT(objs->negative_with_zeros.is_negative());
+} 
+
+void test_initlist_ctor_normalization(TestObjs *objs) {
+  // Tests constructor cleans leading 0s 
   check_contents(objs->leading_zero, { 0UL, 1UL });
   ASSERT(!objs->leading_zero.is_negative());
 
   check_contents(objs->trailing_zero, { 1UL }); 
   ASSERT(objs->trailing_zero.is_negative());
-
-  check_contents(objs->negative_with_zeros, { 0UL, 2UL, 0UL, 1UL });
-  ASSERT(objs->negative_with_zeros.is_negative());
 }
 
-void test_unary_minus_1(TestObjs *objs) {
+void test_unary_minus_standard(TestObjs *objs) {
   // Tests unary minus with regular value 
+  BigInt result1 = -objs->one; 
+  check_contents(result1, { 1UL }); 
+  ASSERT(result1.is_negative()); 
+
+  BigInt result2 = -objs->two_pow_64;
+  check_contents(result2, { 0UL, 1UL });
+  ASSERT(result2.is_negative()); 
+
+  BigInt result3 = -objs->negative_three; 
+  check_contents(result3, { 3UL }); 
+  ASSERT(!result3.is_negative()); 
+
+  BigInt result4 = -objs->two_pow_128; 
+  check_contents(result4, { 0UL, 0UL, 1UL }); 
+  ASSERT(result4.is_negative()); 
+
+  BigInt result5 = -objs->negative_with_zeros; 
+  check_contents(result5, { 0UL, 2UL, 0UL, 1UL });
+  ASSERT(!result5.is_negative());
+} 
+
+void test_unary_minus_zero(TestObjs *objs) {
+  // Tests unary minus with 0 values 
   BigInt result1 = -objs->zero; 
   check_contents(result1, { 0UL }); 
   ASSERT(!result1.is_negative()); 
 
-  BigInt result2 = -objs->one; 
-  check_contents(result2, { 1UL }); 
-  ASSERT(result2.is_negative()); 
-
-  BigInt result3 = -objs->two_pow_64;
-  check_contents(result3, { 0UL, 1UL });
-  ASSERT(result3.is_negative()); 
-
-  BigInt result4 = -objs->negative_three; 
-  check_contents(result4, { 3UL }); 
-  ASSERT(!result4.is_negative()); 
-
-  BigInt result5 = -objs->negative_u64_max_minus_1;  
-  check_contents(result5, { 0xFFFFFFFFFFFFFFFFUL - 1 }); 
-  ASSERT(!result5.is_negative()); 
-
-  BigInt result6 = -objs->two_pow_128; 
-  check_contents(result6, { 0UL, 0UL, 1UL }); 
-  ASSERT(result6.is_negative()); 
-} 
-
-void test_unary_minus_2(TestObjs *objs) {
-  // Tests unary minus with 0 values 
-  BigInt result1 = -objs->all_zeros; 
-  check_contents(result1, { }); 
-  ASSERT(!result1.is_negative()); 
-
-  BigInt result2 = -objs->leading_zero; 
-  check_contents(result2, { 0UL, 1UL });
-  ASSERT(result2.is_negative());
-
-  BigInt result3 = -objs->trailing_zero; 
-  check_contents(result3, { 1UL }); 
-  ASSERT(!result3.is_negative());
-
-  BigInt result4 = -objs->negative_with_zeros; 
-  check_contents(result4, { 0UL, 2UL, 0UL, 1UL });
-  ASSERT(!result4.is_negative());
+  BigInt result2 = -objs->all_zeros; 
+  check_contents(result2, { }); 
+  ASSERT(!result2.is_negative()); 
 }
 
 void test_assignment_op(TestObjs *objs) {
@@ -706,6 +734,7 @@ void test_assignment_op(TestObjs *objs) {
   check_contents(result4, { 0xFFFFFFFFFFFFFFFFUL - 1 }); 
   ASSERT(result3.is_negative()); 
 
+  // Tests self-assignment 
   BigInt result5 = objs->negative_two_pow_64; 
   result5 = result5; 
   check_contents(result5, { 0UL, 1UL }); 
@@ -713,11 +742,11 @@ void test_assignment_op(TestObjs *objs) {
 }
 
 void test_get_bit_vector(TestObjs *objs) {
-  // Tests get_bit_vector and ensures it's a reference 
   BigInt result1 = objs->zero; 
   const auto &vec1 = result1.get_bit_vector(); 
   ASSERT(vec1.empty()); 
 
+  // Tests reference 
   BigInt result2 = objs->negative_two_pow_64; 
   const auto &vec2 = result2.get_bit_vector(); 
   const auto &vec3 = result2.get_bit_vector(); 
@@ -726,6 +755,7 @@ void test_get_bit_vector(TestObjs *objs) {
   ASSERT(vec2[1] == 1UL);
   ASSERT(&vec2 == &vec3); 
 
+  // Tests ignores sign
   BigInt result3 = objs->negative_three; 
   BigInt result4 = objs->three; 
   const auto &vec4 = result3.get_bit_vector(); 
@@ -733,43 +763,59 @@ void test_get_bit_vector(TestObjs *objs) {
   ASSERT(vec4 == vec5); 
 }
 
-void test_get_bits_2(TestObjs *objs) {
-  // Additional tests for get_bits 
+void test_get_bits_edge_cases(TestObjs *objs) {
+  // Bounds tests for get_bits 
   ASSERT(0UL == objs->two_pow_64.get_bits(0)); 
   ASSERT(1UL == objs->two_pow_64.get_bits(1)); 
   ASSERT(0UL == objs->two_pow_64.get_bits(2)); 
 
-  ASSERT(1000UL == objs->ten_pow_3.get_bits(0));
-
+  // Tests sign for get_bits 
   ASSERT(0xFFFFFFFFFFFFFFFFUL - 1  == objs->negative_u64_max_minus_1.get_bits(0)); 
-  ASSERT(objs->negative_u64_max_minus_1.get_bits(0) == -objs->negative_u64_max_minus_1.get_bits(0)); 
+  ASSERT(objs->negative_u64_max_minus_1.get_bits(0) == (-objs->negative_u64_max_minus_1).get_bits(0)); 
 }
 
-void test_add_5(TestObjs *objs) {
-  // Additional tests for addition  
-  BigInt result1 = objs->u64_max + objs->negative_u64_max; 
+void test_add_same_sign(TestObjs *objs) {
+  // Test for addition with same sign  
+  BigInt result1 = objs->two_pow_64 + objs->two_pow_64; 
+  check_contents(result1, { 0UL, 2UL}); 
+  ASSERT(!result1.is_negative()); 
+
+  BigInt result2 = objs->two_pow_64 + objs->one; 
+  check_contents(result2, { 1UL, 1UL }); 
+  ASSERT(!result2.is_negative()); 
+
+  BigInt result3 = objs->negative_two_pow_64 + objs->negative_two_pow_64; 
+  check_contents(result3, { 0UL, 2UL}); 
+  ASSERT(result3.is_negative()); 
+}
+
+void test_add_opp_sign(TestObjs *objs) {
+  // Tests for addition with opposite sign 
+  BigInt result1 = objs->u64_max + objs->negative_u64_max;
   check_contents(result1, { }); 
   ASSERT(!result1.is_negative()); 
 
-  BigInt result2 = objs->two_pow_64 + objs->two_pow_64; 
-  check_contents(result2, { 0UL, 2UL}); 
-  ASSERT(!result2.is_negative()); 
-
-  BigInt result3 = objs->negative_nine + objs->three; 
-  check_contents(result3, { 6UL }); 
-  ASSERT(result3.is_negative()); 
-
-  BigInt result4 = objs->two_pow_64 + objs->one; 
-  check_contents(result4, { 1UL, 1UL }); 
-  ASSERT(!result4.is_negative()); 
-
-  BigInt result5 = objs->negative_two_pow_64 + objs->negative_two_pow_64; 
-  check_contents(result5, { 0UL, 2UL}); 
-  ASSERT(result5.is_negative()); 
+  BigInt result2 = objs->negative_nine + objs->three; 
+  check_contents(result2, { 6UL }); 
+  ASSERT(result2.is_negative()); 
 }
 
-void test_sub_5(TestObjs *objs) {
-  // Additional tests for subtraction 
+void test_add_overflow(TestObjs *objs) {
+  // Tests for addition with uint_64 overflow 
+  BigInt result1 = objs->u64_max + objs->one; 
+  check_contents(result1, { 0UL, 1UL }); 
+  ASSERT(!result1.is_negative()); 
+}
+
+void test_add_underflow(TestObjs *objs) {
+  // Tests for addition with uint_64 underflow 
+  BigInt result1 = objs->two_pow_64 + objs->negative_one; 
+  check_contents(result1, {0xFFFFFFFFFFFFFFFFUL}); 
+  ASSERT(!result1.is_negative()); 
+}
+
+void test_sub_same_sign(TestObjs *objs) {
+  // Tests for subtraction with same sign 
   BigInt result1 = objs->u64_max - objs->zero; 
   check_contents(result1, { 0xFFFFFFFFFFFFFFFFUL }); 
   ASSERT(!result1.is_negative()); 
@@ -780,31 +826,36 @@ void test_sub_5(TestObjs *objs) {
 
   BigInt result3 = objs->two_pow_128 - objs->two_pow_64; 
   check_contents(result3, { 0UL, 0xFFFFFFFFFFFFFFFFUL }); 
-  ASSERT(!result3.is_negative()); 
-
-  BigInt result4 = objs->two_pow_64 - objs->negative_two_pow_128; 
-  check_contents(result4, { 0UL, 1UL, 1UL}); 
-  ASSERT(!result4.is_negative()); 
+  ASSERT(!result3.is_negative());
 
   BigInt result5 = objs->three - objs->ten_pow_3; 
   check_contents(result5, { 997UL }); 
   ASSERT(result5.is_negative()); 
+}
 
-  BigInt result6 = objs->nine - objs->three; 
-  check_contents(result6, { 6UL }); 
-  ASSERT(!result6.is_negative()); 
-
+void test_sub_opp_sign(TestObjs *objs) {
+  // Test for subtraction with opposite sign 
   BigInt result7 = objs->negative_nine - objs->negative_ten_pow_2; 
   check_contents(result7, { 91UL }); 
   ASSERT(!result7.is_negative()); 
+}
 
+void test_sub_overflow(TestObjs *objs) {
+  // Tests for subtraction with uint_64 overflow 
+  BigInt result4 = objs->two_pow_64 - objs->negative_two_pow_128; 
+  check_contents(result4, { 0UL, 1UL, 1UL}); 
+  ASSERT(!result4.is_negative()); 
+}
+
+void test_sub_underflow(TestObjs *objs) {
+  // Tests for subtraction with uint_64 underflow 
   BigInt result8 = objs->negative_two_pow_64 - objs->negative_u64_max; 
   check_contents(result8, { 1UL }); 
   ASSERT(result8.is_negative()); 
 }
 
-void test_lshift_3(TestObjs *objs) {
-  // Additional tests for left shift 
+void test_lshift_standard(TestObjs *objs) {
+  // Tests for lshift of less than 1 unit of uint_64 (less than 64)
   BigInt result1 = objs->zero << 3; 
   check_contents(result1, { }); 
   ASSERT(!result1.is_negative()); 
@@ -813,140 +864,171 @@ void test_lshift_3(TestObjs *objs) {
   check_contents(result2, { 2UL }); 
   ASSERT(!result2.is_negative()); 
 
-  BigInt result3 = objs->one << 64; 
-  check_contents(result3, { 0UL, 1UL }); 
+  BigInt result3 = objs->u64_max << 1; 
+  check_contents(result3, { 0xFFFFFFFFFFFFFFFEUL, 1UL }); 
   ASSERT(!result3.is_negative()); 
 
-  BigInt result4 = objs->one << 65; 
+  BigInt result4 = objs->two_pow_64 << 1; 
   check_contents(result4, { 0UL, 2UL }); 
   ASSERT(!result4.is_negative()); 
 
-  BigInt result5 = objs->u64_max << 1; 
-  check_contents(result5, { 0xFFFFFFFFFFFFFFFEUL, 1UL }); 
+  BigInt result5 = objs->ten_pow_3 << 0; 
+  check_contents(result5, { 1000UL }); 
   ASSERT(!result5.is_negative()); 
+}
 
-  BigInt result6 = objs->u64_max << 65; 
-  check_contents(result6, { 0UL, 0xFFFFFFFFFFFFFFFEUL, 1UL }); 
-  ASSERT(!result6.is_negative()); 
+void test_lshift_units(TestObjs *objs) {
+  // Tests for lshift of units of uint_64 (multiple of 64)
+  BigInt result1 = objs->one << 64; 
+  check_contents(result1, { 0UL, 1UL }); 
+  ASSERT(!result1.is_negative()); 
 
-  BigInt result7 = objs->two_pow_64 << 1; 
-  check_contents(result7, { 0UL, 2UL }); 
-  ASSERT(!result7.is_negative()); 
+  BigInt result2 = objs->three << 128; 
+  check_contents(result2, { 0UL, 0UL, 3UL }); 
+  ASSERT(!result2.is_negative()); 
+}
 
-  BigInt result8 = objs->three << 128; 
-  check_contents(result8, { 0UL, 0UL, 3UL }); 
-  ASSERT(!result8.is_negative()); 
+void test_lshift_large(TestObjs *objs) {
+  // Tests for large lshift (more than 64, non-multiple of 64)
+  BigInt result1 = objs->one << 65; 
+  check_contents(result1, { 0UL, 2UL }); 
+  ASSERT(!result1.is_negative()); 
 
-  BigInt result9 = objs->ten_pow_3 << 0; 
-  check_contents(result9, { 1000UL }); 
-  ASSERT(!result9.is_negative()); 
+  BigInt result2 = objs->u64_max << 65; 
+  check_contents(result2, { 0UL, 0xFFFFFFFFFFFFFFFEUL, 1UL }); 
+  ASSERT(!result2.is_negative()); 
+}
 
+void test_lshift_exception(TestObjs *objs) {
+  // Tests lshift throws exception with negative value 
   try {
     objs->negative_two_pow_128 << 42;
-    FAIL("left shifting a negative value should throw an exception");
+    FAIL("Left shifting a negative value should throw an exception");
   } catch (std::invalid_argument &ex) {}
 
   try {
     objs->negative_u64_max << 0; 
-    FAIL("left shifting a negative value should throw an exception");
+    FAIL("Left shifting a negative value should throw an exception");
   } catch (std::invalid_argument &ex) {}
 }
 
-void test_mul_3(TestObjs *objs) {
-  // Additional tests for multiplication 
+void test_mul_same_sign(TestObjs *objs) {
+  // Tests for multiplication with same sign
+  BigInt result1 = objs->negative_three * objs->negative_nine; 
+  check_contents(result1, { 27UL }); 
+  ASSERT(!result1.is_negative()); 
+
+  BigInt result2 = objs->zero * objs->two_pow_128; 
+  check_contents(result2, { }); 
+  ASSERT(!result2.is_negative()); 
+
+  BigInt result3 = objs->two_pow_64 * objs->two; 
+  check_contents(result3, { 0UL, 2UL }); 
+  ASSERT(!result3.is_negative()); 
+}
+
+void test_mul_opp_sign(TestObjs *objs) {
+  // Tests for multiplication with opposite sign 
   BigInt result1 = objs->three * objs->negative_nine; 
   check_contents(result1, { 27UL }); 
   ASSERT(result1.is_negative()); 
-
-  BigInt result2 = objs->negative_three * objs->negative_nine; 
-  check_contents(result2, { 27UL }); 
-  ASSERT(!result2.is_negative()); 
-
-  BigInt result3 = objs->zero * objs->two_pow_128; 
-  check_contents(result3, { }); 
-  ASSERT(!result3.is_negative()); 
-
-  BigInt result4 = objs->u64_max * objs->negative_u64_max_minus_1; 
-  check_contents(result4, { 2UL, 0xFFFFFFFFFFFFFFFDUL }); 
-  ASSERT(result4.is_negative()); 
-
-  BigInt result5 = objs->two_pow_64 * objs->two; 
-  check_contents(result5, { 0UL, 2UL }); 
-  ASSERT(!result5.is_negative()); 
 }
 
-void test_div_3(TestObjs *objs) {
-  // Additional tests for division
+void test_mul_overflow(TestObjs *objs) {
+  // Tests for multiplication with uint_64 overflow 
+  BigInt result1 = objs->u64_max * objs->negative_u64_max_minus_1; 
+  check_contents(result1, { 2UL, 0xFFFFFFFFFFFFFFFDUL }); 
+  ASSERT(result1.is_negative()); 
+
+  BigInt result2 = objs->two_pow_64 * objs->two_pow_64; 
+  check_contents(result2, { 0UL, 0UL, 1UL }); 
+  ASSERT(!result2.is_negative()); 
+}
+
+void test_div_same_sign(TestObjs *objs) {
+  // Test division with same sign
+  BigInt result1 = objs->nine / objs->three; 
+  check_contents(result1, { 3UL }); 
+  ASSERT(!result1.is_negative()); 
+
+  BigInt result2 = objs->negative_nine / objs->negative_three; 
+  check_contents(result2, { 3UL }); 
+  ASSERT(!result2.is_negative()); 
+
+  BigInt result3 = objs->two_pow_128 / objs->two_pow_128; 
+  check_contents(result3, { 1UL }); 
+  ASSERT(!result3.is_negative()); 
+}
+
+void test_div_opp_sign(TestObjs *objs) {
+  // Tests division with opposite sign 
   BigInt result1 = objs->zero / objs->negative_two_pow_128; 
   check_contents(result1, { });
   ASSERT(!result1.is_negative()); 
 
-  BigInt result2 = objs->nine / objs->three; 
+  BigInt result2 = objs->negative_nine / objs->three; 
   check_contents(result2, { 3UL }); 
+  ASSERT(result2.is_negative()); 
+}
+
+void test_div_truncation(TestObjs *objs) {
+  // Tests division with truncation 
+  BigInt result1 = objs->nine / objs->two; 
+  check_contents(result1, { 4UL }); 
+  ASSERT(!result1.is_negative()); 
+
+  BigInt result2 = objs->one / objs->two_pow_128; 
+  check_contents(result2, { }); 
   ASSERT(!result2.is_negative()); 
 
-  BigInt result3 = objs->negative_nine / objs->negative_three; 
-  check_contents(result3, { 3UL }); 
-  ASSERT(!result3.is_negative()); 
+  BigInt result3 = objs->negative_nine / objs->u64_max; 
+  check_contents(result3, { }); 
+  ASSERT(!result3.is_negative());
 
-  BigInt result4 = objs->negative_nine / objs->three; 
-  check_contents(result4, { 3UL }); 
+  BigInt result4 = objs->negative_u64_max / objs->two; 
+  check_contents(result4, { 0x7FFFFFFFFFFFFFFFUL }); 
   ASSERT(result4.is_negative()); 
+}
 
-  BigInt result5 = objs->nine / objs->two; 
-  check_contents(result5, { 4UL }); 
-  ASSERT(!result5.is_negative()); 
-
-  BigInt result6 = objs->one / objs->two_pow_128; 
-  check_contents(result6, { }); 
-  ASSERT(!result6.is_negative()); 
-
-  BigInt result7 = objs->negative_nine / objs->u64_max; 
-  check_contents(result7, { }); 
-  ASSERT(!result7.is_negative()); 
-
-  BigInt result8 = objs->two_pow_128 / objs->two_pow_128; 
-  check_contents(result8, { 1UL }); 
-  ASSERT(!result8.is_negative()); 
-
-  BigInt result9 = objs->negative_u64_max / objs->two; 
-  check_contents(result9, { 0x7FFFFFFFFFFFFFFFUL }); 
-  ASSERT(result9.is_negative()); 
-
+void test_div_exception(TestObjs *objs) {
+  // Tests division by 0 throws exception 
   try {
     objs->negative_u64_max / objs->zero; 
-    FAIL("dividing by 0 should throw an exception");
+    FAIL("Dividing by 0 should throw an exception");
   } catch (std::invalid_argument &ex) {}
 
   try {
     objs->zero / objs->zero; 
-    FAIL("dividing by 0 should throw an exception");
+    FAIL("Dividing by 0 should throw an exception");
   } catch (std::invalid_argument &ex) {}
 }
 
-void test_to_hex_3(TestObjs *objs) {
-  // Additional tests for conversion to hex
+void test_to_hex_basic(TestObjs *objs) {
+  // Tests for small conversions to hex 
   std::string result1 = objs->all_zeros.to_hex(); 
   ASSERT("0" == result1); 
 
   std::string result2 = objs->negative_nine.to_hex(); 
   ASSERT("-9" == result2); 
 
-  std::string result3 = objs->two_pow_64.to_hex(); 
-  ASSERT("10000000000000000" == result3); 
+  std::string result3 = objs->ten_pow_3.to_hex(); 
+  ASSERT("3e8" == result3); 
 
-  std::string result4 = objs->negative_two_pow_64.to_hex(); 
-  ASSERT("-10000000000000000" == result4); 
-
-  std::string result5 = objs->ten_pow_3.to_hex(); 
-  ASSERT("3e8" == result5); 
-
-  std::string result6 = objs->negative_ten_pow_2.to_hex(); 
-  ASSERT("-64" == result6); 
+  std::string result4 = objs->negative_ten_pow_2.to_hex(); 
+  ASSERT("-64" == result4); 
 }
 
-void test_to_dec_3(TestObjs *objs) {
-  // Additional tests for conversion to decimal 
+void test_to_hex_large(TestObjs *objs) {
+  // Tests for large conversions to hex
+  std::string result1 = objs->two_pow_64.to_hex(); 
+  ASSERT("10000000000000000" == result1); 
+
+  std::string result2 = objs->negative_two_pow_64.to_hex(); 
+  ASSERT("-10000000000000000" == result2); 
+}
+
+void test_to_dec_basic(TestObjs *objs) {
+  // Tests for small conversions to dec 
   std::string result1 = objs->all_zeros.to_dec(); 
   ASSERT("0" == result1); 
 
@@ -958,16 +1040,16 @@ void test_to_dec_3(TestObjs *objs) {
 
   std::string result4 = objs->negative_ten_pow_2.to_dec(); 
   ASSERT("-100" == result4); 
+}
 
-  std::string result5 = objs->two_pow_128.to_dec(); 
-  ASSERT("340282366920938463463374607431768211456" == result5); 
+void test_to_dec_large(TestObjs *objs) {
+  // Tests for large conversions to dec 
+  std::string result1 = objs->two_pow_128.to_dec(); 
+  ASSERT("340282366920938463463374607431768211456" == result1); 
 
-  std::string result6 = objs->negative_u64_max.to_dec(); 
-  ASSERT("-18446744073709551615" == result6); 
+  std::string result2 = objs->negative_u64_max.to_dec(); 
+  ASSERT("-18446744073709551615" == result2); 
 
-  std::string result7 = (objs->two_pow_64 * objs->two).to_dec(); 
-  ASSERT("36893488147419103232" == result7); 
-
-  std::string result8 = (objs->negative_ten_pow_2 / objs->three).to_dec(); 
-  ASSERT("-33" == result8); 
+  std::string result3 = (objs->two_pow_64 * objs->two).to_dec(); 
+  ASSERT("36893488147419103232" == result3); 
 }
