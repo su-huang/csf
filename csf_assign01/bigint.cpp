@@ -290,7 +290,9 @@ std::string BigInt::to_dec() const {
   while (!num.is_zero()) {
     BigInt q = num / ten; 
     BigInt r = num - (ten * q); 
-    ss << r.get_bits(0); 
+
+    // Ensure that we append a single character 
+    ss << char('0' + r.get_bits(0)); 
     num = q; 
   }
 
