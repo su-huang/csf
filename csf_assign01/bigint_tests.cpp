@@ -29,7 +29,6 @@ struct TestObjs {
   BigInt trailing_zero;
   BigInt negative_with_zeros;
   BigInt negative_u64_max; 
-  BigInt u64_max_plus_1; 
   BigInt negative_u64_max_minus_1;  
   BigInt two_pow_128; 
   BigInt negative_two_pow_128; 
@@ -87,6 +86,7 @@ void test_unary_minus_2(TestObjs *objs);
 void test_assignment_op(TestObjs *objs); 
 void test_get_bit_vector(TestObjs *objs); 
 void test_add_5(TestObjs *objs); 
+void test_sub_5(TestObjs *objs); 
 void test_mul_3(TestObjs *objs); 
 
 int main(int argc, char **argv) {
@@ -130,6 +130,7 @@ int main(int argc, char **argv) {
   TEST(test_assignment_op); 
   TEST(test_get_bit_vector); 
   TEST(test_add_5); 
+  TEST(test_sub_5);
   TEST(test_mul_3); 
 
   TEST_FINI();
@@ -156,7 +157,6 @@ TestObjs::TestObjs()
   , trailing_zero({ 1UL, 0UL }, true)
   , negative_with_zeros({ 0UL, 2UL, 0UL, 1UL }, true)
   , negative_u64_max({ 0xFFFFFFFFFFFFFFFFUL }, true)
-  , u64_max_plus_1({ 0UL, 1UL })
   , negative_u64_max_minus_1({ 0xFFFFFFFFFFFFFFFFUL - 1 }, true)
   , two_pow_128({ 0UL, 0UL, 1UL })
   , negative_two_pow_128({ 0UL, 0UL, 1UL }, true) 
@@ -734,9 +734,9 @@ void test_get_bit_vector(TestObjs *objs) {
 
 void test_get_bits_2(TestObjs *objs) {
   // Additional tests for get_bits 
-  ASSERT(0UL == objs->u64_max_plus_1.get_bits(0)); 
-  ASSERT(1UL == objs->u64_max_plus_1.get_bits(1)); 
-  ASSERT(0UL == objs->u64_max_plus_1.get_bits(2)); 
+  ASSERT(0UL == objs->two_pow_64.get_bits(0)); 
+  ASSERT(1UL == objs->two_pow_64.get_bits(1)); 
+  ASSERT(0UL == objs->two_pow_64.get_bits(2)); 
 
   ASSERT(1000UL == objs->ten_pow_3.get_bits(0));
 
@@ -761,6 +761,45 @@ void test_add_5(TestObjs *objs) {
   BigInt result4 = objs->two_pow_64 + objs->one; 
   check_contents(result4, { 1UL, 1UL }); 
   ASSERT(!result4.is_negative()); 
+
+  BigInt result5 = objs->negative_two_pow_64 + objs->negative_two_pow_64; 
+  check_contents(result5, { 0UL, 2UL}); 
+  ASSERT(result5.is_negative()); 
+}
+
+void test_sub_5(TestObjs *objs) {
+  // Additional tests for subtraction 
+  BigInt result1 = objs->u64_max - objs->zero; 
+  check_contents(result1, { 0xFFFFFFFFFFFFFFFFUL }); 
+  ASSERT(!result1.is_negative()); 
+
+  BigInt result2 = objs->negative_ten_pow_2 - objs->negative_ten_pow_2; 
+  check_contents(result2, { }); 
+  ASSERT(!result2.is_negative()); 
+
+  BigInt result3 = objs->two_pow_128 - objs->two_pow_64; 
+  check_contents(result3, { 0UL, 0xFFFFFFFFFFFFFFFFUL }); 
+  ASSERT(!result3.is_negative()); 
+
+  BigInt result4 = objs->two_pow_64 - objs->negative_two_pow_128; 
+  check_contents(result4, { 0UL, 1UL, 1UL}); 
+  ASSERT(!result4.is_negative()); 
+
+  BigInt result5 = objs->three - objs->ten_pow_3; 
+  check_contents(result5, { 997UL }); 
+  ASSERT(result5.is_negative()); 
+
+  BigInt result6 = objs->nine - objs->three; 
+  check_contents(result6, { 6UL }); 
+  ASSERT(!result6.is_negative()); 
+
+  BigInt result7 = objs->negative_nine - objs->negative_ten_pow_2; 
+  check_contents(result7, { 91UL }); 
+  ASSERT(!result7.is_negative()); 
+
+  BigInt result8 = objs->negative_two_pow_64 - objs->negative_u64_max; 
+  check_contents(result8, { 1UL }); 
+  ASSERT(result8.is_negative()); 
 }
 
 void test_mul_3(TestObjs *objs) {
