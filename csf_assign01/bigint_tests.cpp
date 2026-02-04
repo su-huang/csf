@@ -87,6 +87,7 @@ void test_assignment_op(TestObjs *objs);
 void test_get_bit_vector(TestObjs *objs); 
 void test_add_5(TestObjs *objs); 
 void test_sub_5(TestObjs *objs); 
+void test_lshift_3(TestObjs *objs); 
 void test_mul_3(TestObjs *objs); 
 
 int main(int argc, char **argv) {
@@ -131,6 +132,7 @@ int main(int argc, char **argv) {
   TEST(test_get_bit_vector); 
   TEST(test_add_5); 
   TEST(test_sub_5);
+  TEST(test_lshift_3); 
   TEST(test_mul_3); 
 
   TEST_FINI();
@@ -800,6 +802,55 @@ void test_sub_5(TestObjs *objs) {
   BigInt result8 = objs->negative_two_pow_64 - objs->negative_u64_max; 
   check_contents(result8, { 1UL }); 
   ASSERT(result8.is_negative()); 
+}
+
+void test_lshift_3(TestObjs *objs) {
+  // Additional tests for left shift 
+  BigInt result1 = objs->zero << 3; 
+  check_contents(result1, { }); 
+  ASSERT(!result1.is_negative()); 
+
+  BigInt result2 = objs->one << 1; 
+  check_contents(result2, { 2UL }); 
+  ASSERT(!result2.is_negative()); 
+
+  BigInt result3 = objs->one << 64; 
+  check_contents(result3, { 0UL, 1UL }); 
+  ASSERT(!result3.is_negative()); 
+
+  BigInt result4 = objs->one << 65; 
+  check_contents(result4, { 0UL, 2UL }); 
+  ASSERT(!result4.is_negative()); 
+
+  BigInt result5 = objs->u64_max << 1; 
+  check_contents(result5, { 0xFFFFFFFFFFFFFFFEUL, 1UL }); 
+  ASSERT(!result5.is_negative()); 
+
+  BigInt result6 = objs->u64_max << 65; 
+  check_contents(result6, { 0UL, 0xFFFFFFFFFFFFFFFEUL, 1UL }); 
+  ASSERT(!result6.is_negative()); 
+
+  BigInt result7 = objs->two_pow_64 << 1; 
+  check_contents(result7, { 0UL, 2UL }); 
+  ASSERT(!result7.is_negative()); 
+
+  BigInt result8 = objs->three << 128; 
+  check_contents(result8, { 0UL, 0UL, 3UL }); 
+  ASSERT(!result8.is_negative()); 
+
+  BigInt result9 = objs->ten_pow_3 << 0; 
+  check_contents(result9, { 1000UL }); 
+  ASSERT(!result9.is_negative()); 
+
+  try {
+    objs->negative_two_pow_128 << 42;
+    FAIL("left shifting a negative value should throw an exception");
+  } catch (std::invalid_argument &ex) {}
+
+  try {
+    objs->negative_u64_max << 0; 
+    FAIL("left shifting a negative value should throw an exception");
+  } catch (std::invalid_argument &ex) {}
 }
 
 void test_mul_3(TestObjs *objs) {
