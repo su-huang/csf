@@ -278,31 +278,38 @@ std::string BigInt::to_dec() const {
     return "0"; 
   }
 
-  std::stringstream ss; 
-  BigInt ten(10); 
+  std::string ans; 
+
+  // Largest power of 10 smaller than max uint64 
+  BigInt ten_pow_19(10000000000000000000ULL); 
 
   // Create a copy so we don't need to worry about signs 
   BigInt num = *this; 
   num.negative = false; 
 
-  // Build decimal from least significant to most significant 
-  // Divide by 10 and track remainder until 0 
+  // Build decimal from least significant to most significant digit 
+  // Divide uint_64 by 10^19 and track remainder until 0 
   while (!num.is_zero()) {
-    BigInt q = num / ten; 
-    BigInt r = num - (ten * q); 
+    BigInt q = num / ten_pow_19; 
+    BigInt r = num - (ten_pow_19 * q); 
 
-    // Ensure that we append a single character 
-    ss << char('0' + r.get_bits(0)); 
+    std::string curr = std::to_string(r.get_bits(0)); 
+    
+    if (!q.is_zero()) {
+      // Append 0s to get 19 digit result 
+      while (curr.size() < 19) {
+        curr = "0" + curr; 
+      }
+    }
+
+    ans = curr + ans; 
     num = q; 
   }
 
   if (negative) {
-    ss << "-"; 
+    ans = "-" + ans; 
   }
 
-  // Reverse string to get digits in right order 
-  std::string ans = ss.str();  
-  std::reverse(ans.begin(), ans.end()); 
   return ans; 
 }
 
