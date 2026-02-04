@@ -70,34 +70,41 @@ uint64_t BigInt::get_bits(unsigned index) const {
 
 BigInt BigInt::operator+(const BigInt &rhs) const {
   BigInt ans;
+
+  // Add magnitude of each uint_64 if both have the same sign
   if (negative == rhs.negative) { 
     ans.negative = negative; 
     uint64_t carry = 0; 
 
-    for (unsigned index = 0; index < magnitude.size() || index < rhs.magnitude.size(); index++) {
-      ans.magnitude.push_back(add_magnitudes(get_bits(index), rhs.get_bits(index), carry)); 
+    for (unsigned i = 0; i < magnitude.size() || i < rhs.magnitude.size(); i++) {
+      // get_bits() ensures that we get 0 for out of range indices 
+      ans.magnitude.push_back(add_magnitudes(get_bits(i), rhs.get_bits(i), carry)); 
     }
 
+    // Add left-over carry 
     if (carry) {
       ans.magnitude.push_back(carry); 
     }
   } else {
+    // Subtracting each smaller uint_64 magnitude from larger uint_64 if values have different signs 
     const BigInt &larger = (compare_magnitude(rhs) < 0) ? rhs : *this;
     const BigInt &smaller = (compare_magnitude(rhs) < 0) ? *this : rhs;
+
     ans.negative = larger.negative; 
     uint64_t borrow = 0; 
 
-    for (unsigned index = 0; index < larger.magnitude.size(); index++) {
-      ans.magnitude.push_back(subtract_magnitudes(larger.get_bits(index), smaller.get_bits(index), borrow)); 
+    for (unsigned i = 0; i < larger.magnitude.size(); i++) {
+      // get_bits() ensures that we get 0 for out of range indices 
+      ans.magnitude.push_back(subtract_magnitudes(larger.get_bits(i), smaller.get_bits(i), borrow)); 
     }
   }
 
   ans.clean(); 
-  
   return ans; 
 }
 
 BigInt BigInt::operator-(const BigInt &rhs) const {
+  // Negate then add 
   return *this + (-rhs); 
 }
 
@@ -112,6 +119,7 @@ BigInt BigInt::operator-() const {
 }
 
 bool BigInt::is_bit_set(unsigned n) const {
+  // Separate n into index in vector and bit in uint_64
   unsigned unit_index = n / 64; 
   unsigned bit_index = n % 64; 
 
@@ -119,6 +127,7 @@ bool BigInt::is_bit_set(unsigned n) const {
     return false; 
   }
 
+  // Isolates the desired bit 
   return ((magnitude[unit_index] >> bit_index) & 1) == 1; 
 }
 
@@ -132,19 +141,26 @@ BigInt BigInt::operator<<(unsigned n) const {
   }
 
   BigInt ans; 
+
+  // Separate n into whole uint_64 to shift and bits 
   unsigned units = n / 64; 
   unsigned bits = n % 64; 
 
+  // Shifting whole uint_64 blocks 
   for (unsigned i = 0; i < units; i++) {
     ans.magnitude.push_back((uint64_t) 0); 
   }
 
   uint64_t carry = 0; 
   for (auto curr : magnitude) {
+    // Shift by bits and insert carry 
     ans.magnitude.push_back((curr << bits) | carry); 
+
+    // Save lost bits from shift 
     carry = (bits == 0) ? 0 : (curr >> (64 - bits)); 
   }
 
+  // Append left-over carry 
   if (carry) {
     ans.magnitude.push_back(carry); 
   }
@@ -166,7 +182,9 @@ BigInt BigInt::operator*(const BigInt &rhs) const {
   other.negative = false; 
 
   for (unsigned i = 0; i < magnitude.size() * 64; i++) {
+    // Bits = 1 indicate a factor of a power of 2
     if (is_bit_set(i)) {
+      // Left shift by i to multiply by 2^i
       ans = ans + (other << i); 
     }
   }
@@ -185,7 +203,7 @@ BigInt BigInt::operator/(const BigInt &rhs) const {
     return BigInt(); 
   }
 
-  // Make unsigned copy to prevent sign implications 
+  // Make unsigned copy to prevent sign implications in comparisons 
   BigInt n = *this; 
   n.negative = false; 
   BigInt m = rhs; 
@@ -193,16 +211,19 @@ BigInt BigInt::operator/(const BigInt &rhs) const {
 
   BigInt ans; 
   
+  // Set low and high integers for binary search 
   BigInt low(0);
   BigInt high = *this; 
   high.negative = false; 
   
+  // Perform inclusive binary search to narrow-down quotient 
   while (low.compare(high) <= 0) {
     BigInt mid = (low + high).right_shift(); 
     BigInt product = mid * m; 
 
     int comp = product.compare(n); 
 
+    // Truncate so save smaller value even if not exact 
     if (comp <= 0) {
       ans = mid; 
       low = mid + BigInt(1); 
@@ -217,10 +238,12 @@ BigInt BigInt::operator/(const BigInt &rhs) const {
 }
 
 int BigInt::compare(const BigInt &rhs) const {
+  // First compare signs
   if (negative != rhs.negative) {
     return (negative ? -1 : 1); 
   }
 
+  // Compare magnitudes 
   return (negative ? -compare_magnitude(rhs) : compare_magnitude(rhs)); 
 }
 
@@ -256,10 +279,14 @@ std::string BigInt::to_dec() const {
   }
 
   std::stringstream ss; 
-  BigInt num = *this; 
-  num.negative = false; 
   BigInt ten(10); 
 
+  // Create a copy so we don't need to worry about signs 
+  BigInt num = *this; 
+  num.negative = false; 
+
+  // Build decimal from least significant to most significant 
+  // Divide by 10 and track remainder until 0 
   while (!num.is_zero()) {
     BigInt q = num / ten; 
     BigInt r = num - (ten * q); 
@@ -271,6 +298,7 @@ std::string BigInt::to_dec() const {
     ss << "-"; 
   }
 
+  // Reverse string to get digits in right order 
   std::string ans = ss.str();  
   std::reverse(ans.begin(), ans.end()); 
   return ans; 
@@ -283,6 +311,8 @@ bool BigInt::is_zero() const {
 
 uint64_t BigInt::add_magnitudes(uint64_t a, uint64_t b, uint64_t &carry) const {
   uint64_t sum = a + b + carry; 
+
+  // Update carry if bit lost from incorrect sum (overflow)
   if (sum < a || (carry && sum == a)) {
     carry = 1; 
   } else {
@@ -294,6 +324,8 @@ uint64_t BigInt::add_magnitudes(uint64_t a, uint64_t b, uint64_t &carry) const {
 
 uint64_t BigInt::subtract_magnitudes(uint64_t a, uint64_t b, uint64_t &borrow) const {
   uint64_t difference = a - b - borrow; 
+
+  // Update borrow if bit lost from incorrect difference (underflow)
   if (a - borrow < b) {
     borrow = 1; 
   } else {
@@ -304,12 +336,14 @@ uint64_t BigInt::subtract_magnitudes(uint64_t a, uint64_t b, uint64_t &borrow) c
 }
 
 int BigInt::compare_magnitude(const BigInt &rhs) const { 
+  // Compare number of unint_64 
   if (magnitude.size() > rhs.magnitude.size()) {
     return 1; 
   } else if (magnitude.size() < rhs.magnitude.size()) {
     return -1; 
   }
 
+  // Compare from most significant to least significant bit 
   for (int index = magnitude.size() - 1; index >= 0; index--) {
     if (get_bits(index) != rhs.get_bits(index)) {
       return (get_bits(index) > rhs.get_bits(index) ? 1 : -1); 
@@ -320,10 +354,12 @@ int BigInt::compare_magnitude(const BigInt &rhs) const {
 }
 
 void BigInt::clean() {
+  // Remove trailing 0s 
   while (!magnitude.empty() && magnitude.back() == 0) {
     magnitude.pop_back(); 
   }
 
+  // Value is 0 
   if (magnitude.empty()) {
     negative = false; 
   }
@@ -337,9 +373,12 @@ BigInt BigInt::right_shift() const {
   BigInt ans = *this; 
   uint64_t carry = 0; 
 
-  // Iterate from MSB to LSB 
+  // Iterate from mosft significant to least significant bit 
   for (int i = magnitude.size() - 1; i >= 0; i--) {
+    // Shift and insert carry from more significant uint_64 
     ans.magnitude[i] = (magnitude[i] >> 1) | carry; 
+
+    // Save least significant bit from uint_64 of original integer 
     carry = (magnitude[i] & 1) ? ((uint64_t) 1 << 63) : 0; 
   }
 
