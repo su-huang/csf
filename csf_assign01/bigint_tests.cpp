@@ -89,6 +89,7 @@ void test_add_5(TestObjs *objs);
 void test_sub_5(TestObjs *objs); 
 void test_lshift_3(TestObjs *objs); 
 void test_mul_3(TestObjs *objs); 
+void test_div_3(TestObjs *objs); 
 
 int main(int argc, char **argv) {
   if (argc > 1) {
@@ -134,6 +135,7 @@ int main(int argc, char **argv) {
   TEST(test_sub_5);
   TEST(test_lshift_3); 
   TEST(test_mul_3); 
+  TEST(test_div_3); 
 
   TEST_FINI();
 }
@@ -874,4 +876,53 @@ void test_mul_3(TestObjs *objs) {
   BigInt result5 = objs->two_pow_64 * objs->two; 
   check_contents(result5, { 0UL, 2UL }); 
   ASSERT(!result5.is_negative()); 
+}
+
+void test_div_3(TestObjs *objs) {
+  // Additional tests for division
+  BigInt result1 = objs->zero / objs->negative_two_pow_128; 
+  check_contents(result1, { });
+  ASSERT(!result1.is_negative()); 
+
+  BigInt result2 = objs->nine / objs->three; 
+  check_contents(result2, { 3UL }); 
+  ASSERT(!result2.is_negative()); 
+
+  BigInt result3 = objs->negative_nine / objs->negative_three; 
+  check_contents(result3, { 3UL }); 
+  ASSERT(!result3.is_negative()); 
+
+  BigInt result4 = objs->negative_nine / objs->three; 
+  check_contents(result4, { 3UL }); 
+  ASSERT(result4.is_negative()); 
+
+  BigInt result5 = objs->nine / objs->two; 
+  check_contents(result5, { 4UL }); 
+  ASSERT(!result5.is_negative()); 
+
+  BigInt result6 = objs->one / objs->two_pow_128; 
+  check_contents(result6, { }); 
+  ASSERT(!result6.is_negative()); 
+
+  BigInt result7 = objs->negative_nine / objs->u64_max; 
+  check_contents(result7, { }); 
+  ASSERT(!result7.is_negative()); 
+
+  BigInt result8 = objs->two_pow_128 / objs->two_pow_128; 
+  check_contents(result8, { 1UL }); 
+  ASSERT(!result8.is_negative()); 
+
+  BigInt result9 = objs->negative_u64_max / objs->two; 
+  check_contents(result9, { 0x7FFFFFFFFFFFFFFFUL }); 
+  ASSERT(result9.is_negative()); 
+
+  try {
+    objs->negative_u64_max / objs->zero; 
+    FAIL("dividing by 0 should throw an exception");
+  } catch (std::invalid_argument &ex) {}
+
+  try {
+    objs->zero / objs->zero; 
+    FAIL("dividing by 0 should throw an exception");
+  } catch (std::invalid_argument &ex) {}
 }
