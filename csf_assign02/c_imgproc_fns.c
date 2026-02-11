@@ -43,6 +43,16 @@
 //! @param yfac factor to downsize the image vertically; guaranteed to be positive
 void imgproc_squash( struct Image *input_img, struct Image *output_img, int32_t xfac, int32_t yfac ) {
   // TODO: implement
+  output_img->width = input_img->width / xfac; 
+  output_img->height = input_img->height / yfac; 
+
+  for (int32_t r = 0; r < output_img->height; r++) {
+    for (int32_t c = 0; c < output_img->width; c++) {
+      int32_t input_ind = (r * yfac * input_img->width + c * xfac);
+      int32_t output_ind = (r * output_img->width + c); 
+      output_img->data[output_ind] = input_img->data[input_ind]; 
+    }
+  }
 }
 
 //! Transform the color component values in each input pixel
