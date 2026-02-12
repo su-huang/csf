@@ -48,8 +48,8 @@ void imgproc_squash( struct Image *input_img, struct Image *output_img, int32_t 
 
   for (int32_t r = 0; r < output_img->height; r++) {
     for (int32_t c = 0; c < output_img->width; c++) {
-      int32_t input_ind = (r * yfac * input_img->width + c * xfac);
-      int32_t output_ind = (r * output_img->width + c); 
+      int32_t input_ind = r * yfac * input_img->width + c * xfac;
+      int32_t output_ind = r * output_img->width + c; 
       output_img->data[output_ind] = input_img->data[input_ind]; 
     }
   }
@@ -70,6 +70,20 @@ void imgproc_squash( struct Image *input_img, struct Image *output_img, int32_t 
 //!                   transformed pixels should be stored)
 void imgproc_color_rot( struct Image *input_img, struct Image *output_img) {
   // TODO: implement
+  output_img->width = input_img->width; 
+  output_img->height = input_img->height; 
+
+  for (int32_t r = 0; r < input_img->height; r++) {
+    for (int32_t c = 0; c < input_img->width; c++) {
+      int32_t ind = r * input_img->width + c; 
+      uint8_t alpha = input_img->data[ind] & 0xff; 
+      uint8_t blue = (input_img->data[ind] >> 8) & 0xff; 
+      uint8_t green = (input_img->data[ind] >> 16) & 0xff; 
+      uint8_t red = (input_img->data[ind] >> 24) & 0xff; 
+
+      output_img->data[ind] = (blue << 24) | (red << 16) | (green << 8) | alpha;
+    }
+  }
 }
 
 //! Transform the input image using a blur effect.
