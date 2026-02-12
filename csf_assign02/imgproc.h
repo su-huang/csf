@@ -139,6 +139,10 @@ int32_t valid_index( struct Image *img, int32_t row, int32_t col );
 int32_t compute_index( struct Image *img, int32_t row, int32_t col );
 uint32_t blur_pixel( struct Image *img, int32_t row, int32_t col, int32_t blur_dist );
 uint32_t rot_colors( struct Image *img, int32_t index );
+uint32_t expand_even_even (struct Image *img, int32_t row, int32_t col ); 
+uint32_t expand_even_odd (struct Image *img, int32_t row, int32_t col ); 
+uint32_t expand_odd_even (struct Image *img, int32_t row, int32_t col ); 
+uint32_t expand_odd_odd (struct Image *img, int32_t row, int32_t col ); 
 
 struct PixelAverager {
   uint32_t r, g, b, a, count;
@@ -149,4 +153,5 @@ void pa_update( struct PixelAverager *pa, uint32_t pixel );
 void pa_update_from_img( struct Image *img, int32_t row, int32_t col, struct PixelAverager *pa );
 uint32_t pa_avg_pixel( struct PixelAverager *pa, uint32_t default_alpha, uint32_t img_alpha );
 
-#endif // IMGPROC_H
+#endif 
+// IMGPROC_H

@@ -169,6 +169,28 @@ void imgproc_blur( struct Image *input_img, struct Image *output_img, int32_t bl
 //!                   transformed pixels should be stored)
 void imgproc_expand( struct Image *input_img, struct Image *output_img) {
   // TODO: implement
+  int status = img_init(output_img, input_img->width * 2, input_img->height * 2);
+  if (status != IMG_SUCCESS) {
+    return; 
+  }
+
+  for (int32_t row = 0; row < output_img->height; row++) {
+    for (int32_t col = 0; col < output_img->width; col++) {
+      uint32_t pixel; 
+      if (row % 2 == 0 && col % 2 == 0) {
+        pixel = expand_even_even(input_img, row, col); 
+      } else if (row % 2 == 0 && col % 2 != 0) {
+        pixel = expand_even_odd(input_img, row, col); 
+      } else if (row % 2 != 0 && col % 2 == 0) {
+        pixel = expand_odd_even(input_img, row, col); 
+      } else {
+        pixel = expand_odd_odd(input_img, row, col); 
+      }
+
+      int32_t index = compute_index(output_img, row, col); 
+      output_img->data[index] = pixel; 
+    }
+  }
 }
 
 uint32_t get_r( uint32_t pixel ) {
@@ -227,6 +249,52 @@ uint32_t rot_colors( struct Image *img, int32_t index ) {
   uint8_t new_g = get_r(pixel); 
 
   return make_pixel(new_r, new_g, new_b, a); 
+}
+
+uint32_t expand_even_even (struct Image *img, int32_t row, int32_t col ) {
+  int32_t new_row = row / 2; 
+  int32_t new_col = col / 2; 
+  int32_t index = compute_index(img, new_row, new_col); 
+  
+  return (img->data[index]); 
+}
+
+uint32_t expand_even_odd (struct Image *img, int32_t row, int32_t col ) {
+  int32_t new_row = row / 2; 
+  int32_t new_col = col / 2; 
+
+  struct PixelAverager pa; 
+  pa_init(&pa); 
+  pa_update_from_img(img, new_row, new_col, &pa); 
+  pa_update_from_img(img, new_row, new_col + 1, &pa); 
+
+  return pa_avg_pixel(&pa, 0, 0); 
+}
+
+uint32_t expand_odd_even (struct Image *img, int32_t row, int32_t col ) {
+  int32_t new_row = row / 2; 
+  int32_t new_col = col / 2; 
+
+  struct PixelAverager pa; 
+  pa_init(&pa); 
+  pa_update_from_img(img, new_row, new_col, &pa); 
+  pa_update_from_img(img, new_row + 1, new_col, &pa); 
+
+  return pa_avg_pixel(&pa, 0, 0); 
+}
+
+uint32_t expand_odd_odd (struct Image *img, int32_t row, int32_t col ) {
+  int32_t new_row = row / 2; 
+  int32_t new_col = col / 2; 
+
+  struct PixelAverager pa; 
+  pa_init(&pa); 
+  pa_update_from_img(img, new_row, new_col, &pa); 
+  pa_update_from_img(img, new_row, new_col + 1, &pa); 
+  pa_update_from_img(img, new_row + 1, new_col, &pa); 
+  pa_update_from_img(img, new_row + 1, new_col + 1, &pa); 
+
+  return pa_avg_pixel(&pa, 0, 0); 
 }
 
 void pa_init( struct PixelAverager *pa ) {
