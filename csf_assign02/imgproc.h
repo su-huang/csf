@@ -126,8 +126,27 @@ void imgproc_blur( struct Image *input_img, struct Image *output_img, int32_t bl
 //! @param input_img pointer to the input Image
 //! @param output_img pointer to the output Image (in which the
 //!                   transformed pixels should be stored)
-void imgproc_expand( struct Image *input_img, struct Image *output_img);
+void imgproc_expand( struct Image *input_img, struct Image *output_img );
 
 // TODO: add prototypes for your helper functions
+
+uint32_t get_r( uint32_t pixel );
+uint32_t get_g( uint32_t pixel );
+uint32_t get_b( uint32_t pixel );
+uint32_t get_a( uint32_t pixel );
+uint32_t make_pixel( uint32_t r, uint32_t g, uint32_t b, uint32_t a );
+int32_t valid_index( struct Image *img, int32_t row, int32_t col ); 
+int32_t compute_index( struct Image *img, int32_t row, int32_t col );
+uint32_t blur_pixel( struct Image *img, int32_t row, int32_t col, int32_t blur_dist );
+uint32_t rot_colors( struct Image *img, int32_t index );
+
+struct PixelAverager {
+  uint32_t r, g, b, a, count;
+};
+
+void pa_init( struct PixelAverager *pa );
+void pa_update( struct PixelAverager *pa, uint32_t pixel );
+void pa_update_from_img( struct Image *img, int32_t row, int32_t col, struct PixelAverager *pa );
+uint32_t pa_avg_pixel( struct PixelAverager *pa, uint32_t default_alpha, uint32_t img_alpha );
 
 #endif // IMGPROC_H

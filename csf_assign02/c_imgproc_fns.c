@@ -43,14 +43,16 @@
 //! @param yfac factor to downsize the image vertically; guaranteed to be positive
 void imgproc_squash( struct Image *input_img, struct Image *output_img, int32_t xfac, int32_t yfac ) {
   // TODO: implement
-  output_img->width = input_img->width / xfac; 
-  output_img->height = input_img->height / yfac; 
+  int status = img_init(output_img, input_img->width / xfac, input_img->height / yfac);
+  if (status != IMG_SUCCESS) {
+    return; 
+  }
 
-  for (int32_t r = 0; r < output_img->height; r++) {
-    for (int32_t c = 0; c < output_img->width; c++) {
-      int32_t input_ind = r * yfac * input_img->width + c * xfac;
-      int32_t output_ind = r * output_img->width + c; 
-      output_img->data[output_ind] = input_img->data[input_ind]; 
+  for (int32_t row = 0; row < output_img->height; row++) {
+    for (int32_t col = 0; col < output_img->width; col++) {
+      int32_t input_index = compute_index(input_img, row * yfac, col * xfac); 
+      int32_t output_index = compute_index(output_img, row, col); 
+      output_img->data[output_index] = input_img->data[input_index]; 
     }
   }
 }
@@ -70,18 +72,15 @@ void imgproc_squash( struct Image *input_img, struct Image *output_img, int32_t 
 //!                   transformed pixels should be stored)
 void imgproc_color_rot( struct Image *input_img, struct Image *output_img) {
   // TODO: implement
-  output_img->width = input_img->width; 
-  output_img->height = input_img->height; 
+  int status = img_init(output_img, input_img->width, input_img->height);
+  if (status != IMG_SUCCESS) {
+    return; 
+  }
 
-  for (int32_t r = 0; r < input_img->height; r++) {
-    for (int32_t c = 0; c < input_img->width; c++) {
-      int32_t ind = r * input_img->width + c; 
-      uint8_t alpha = input_img->data[ind] & 0xff; 
-      uint8_t blue = (input_img->data[ind] >> 8) & 0xff; 
-      uint8_t green = (input_img->data[ind] >> 16) & 0xff; 
-      uint8_t red = (input_img->data[ind] >> 24) & 0xff; 
-
-      output_img->data[ind] = (blue << 24) | (red << 16) | (green << 8) | alpha;
+  for (int32_t row = 0; row < input_img->height; row++) {
+    for (int32_t col = 0; col < input_img->width; col++) {
+      int32_t index = compute_index(input_img, row, col);  
+      output_img->data[index] = rot_colors(input_img, index); 
     }
   }
 }
@@ -115,6 +114,18 @@ void imgproc_color_rot( struct Image *input_img, struct Image *output_img) {
 //!                  components of the output pixel
 void imgproc_blur( struct Image *input_img, struct Image *output_img, int32_t blur_dist ) {
   // TODO: implement
+  int status = img_init(output_img, input_img->width, input_img->height);
+  if (status != IMG_SUCCESS) {
+    return; 
+  }
+
+  for (int32_t row = 0; row < input_img->height; row++) {
+    for (int32_t col = 0; col < input_img->width; col++) {
+      uint32_t pixel = blur_pixel(input_img, row, col, blur_dist); 
+      int32_t index = compute_index(output_img, row, col); 
+      output_img->data[index] = pixel; 
+    }
+  }
 }
 
 //! The `expand` transformation doubles the width and height of the image.
@@ -158,4 +169,102 @@ void imgproc_blur( struct Image *input_img, struct Image *output_img, int32_t bl
 //!                   transformed pixels should be stored)
 void imgproc_expand( struct Image *input_img, struct Image *output_img) {
   // TODO: implement
+}
+
+uint32_t get_r( uint32_t pixel ) {
+  return (pixel >> 24) & 0xff; 
+}
+
+uint32_t get_g( uint32_t pixel ) {
+  return (pixel >> 16) & 0xff;
+}
+
+uint32_t get_b( uint32_t pixel ) {
+  return (pixel >> 8) & 0xff;
+}
+
+uint32_t get_a( uint32_t pixel ) {
+  return pixel & 0xff;
+}
+
+uint32_t make_pixel( uint32_t r, uint32_t g, uint32_t b, uint32_t a ) {
+  return (r << 24) | (g << 16) | (b << 8) | a;
+}
+
+int32_t valid_index( struct Image *img, int32_t row, int32_t col ) {
+  if (row < 0 || row >= img->height || col < 0 || col >= img->width) {
+    return 0; 
+  }
+  return 1; 
+}
+
+int32_t compute_index( struct Image *img, int32_t row, int32_t col ) {
+  return row * img->width + col; 
+}
+
+uint32_t blur_pixel( struct Image *img, int32_t row, int32_t col, int32_t blur_dist ) {
+  struct PixelAverager pa; 
+  pa_init(&pa); 
+
+  for (int32_t row_index = row - blur_dist; row_index <= row + blur_dist; row_index++) {
+    for (int32_t col_index = col - blur_dist; col_index <= col + blur_dist; col_index++) {
+      pa_update_from_img(img, row_index, col_index, &pa); 
+    }
+  }
+
+  int32_t index = compute_index(img, row, col); 
+  uint32_t a = get_a(img->data[index]); 
+
+  return pa_avg_pixel(&pa, 1, a); 
+}
+
+uint32_t rot_colors( struct Image *img, int32_t index ) {
+  uint32_t pixel = img->data[index];
+
+  uint8_t a = get_a(pixel); 
+  uint8_t new_r = get_b(pixel); 
+  uint8_t new_b = get_g(pixel); 
+  uint8_t new_g = get_r(pixel); 
+
+  return make_pixel(new_r, new_g, new_b, a); 
+}
+
+void pa_init( struct PixelAverager *pa ) {
+  pa->r = 0; 
+  pa->g = 0; 
+  pa->b = 0; 
+  pa->a = 0; 
+  pa->count = 0; 
+}
+
+void pa_update( struct PixelAverager *pa, uint32_t pixel ) {
+  pa->r += get_r(pixel); 
+  pa->g += get_g(pixel); 
+  pa->b += get_b(pixel); 
+  pa->a += get_a(pixel); 
+  pa->count++; 
+}
+
+void pa_update_from_img( struct Image *img, int32_t row, int32_t col, struct PixelAverager *pa ) {
+  if (valid_index(img, row, col)) {
+    int32_t ind = compute_index(img, row, col); 
+    pa_update(pa, img->data[ind]); 
+  }
+}
+
+uint32_t pa_avg_pixel( struct PixelAverager *pa, uint32_t default_alpha, uint32_t img_alpha ) {
+  if (pa->count == 0) {
+    return make_pixel(pa->r, pa->g, pa->b, pa->a); 
+  }
+
+  uint32_t avg_r = pa->r / pa->count;
+  uint32_t avg_g = pa->g / pa->count;
+  uint32_t avg_b = pa->b / pa->count;
+  uint32_t avg_a = pa->a / pa->count;
+
+  if (default_alpha) {
+    avg_a = img_alpha; 
+  }
+  
+  return make_pixel(avg_r, avg_g, avg_b, avg_a);
 }
