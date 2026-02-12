@@ -47,7 +47,22 @@ void test_squash_basic( TestObjs *objs );
 void test_color_rot_basic( TestObjs *objs );
 void test_blur_basic( TestObjs *objs );
 void test_expand_basic( TestObjs *objs );
+
 // TODO: add prototypes for additional test functions
+void test_get_rgba( TestObjs *objs ); 
+void test_make_pixel( TestObjs *objs ); 
+void test_valid_index( TestObjs *objs ); 
+void test_compute_index( TestObjs *objs ); 
+void test_blur_pixel( TestObjs *objs ); 
+void test_rot_colors( TestObjs *objs ); 
+void test_expand_even_even( TestObjs *objs ); 
+void test_expand_even_odd( TestObjs *objs ); 
+void test_expand_odd_even( TestObjs *objs ); 
+void test_expand_odd_odd( TestObjs *objs ); 
+void test_pa_init( TestObjs *objs ); 
+void test_pa_update( TestObjs *objs ); 
+void test_pa_update_from_img( TestObjs *objs ); 
+void test_pa_avg_pixel( TestObjs *objs ); 
 
 int main( int argc, char **argv ) {
   // allow the specific test to execute to be specified as the
@@ -64,6 +79,13 @@ int main( int argc, char **argv ) {
   TEST( test_color_rot_basic );
   TEST( test_blur_basic );
   TEST( test_expand_basic );
+
+  TEST( test_get_rgba ); 
+  TEST( test_make_pixel ); 
+  TEST( test_valid_index ); 
+  TEST( test_compute_index ); 
+  TEST( test_blur_pixel ); 
+  TEST( test_rot_colors ); 
 
   TEST_FINI();
 }
@@ -189,3 +211,112 @@ void test_expand_basic( TestObjs *objs ) {
 }
 
 // TODO: define additional test functions
+
+void test_get_rgba( TestObjs *objs ) {
+  // Basic test 
+  uint32_t p1 = 0x12345678;
+  ASSERT(get_r(p1) == 0x12);
+  ASSERT(get_g(p1) == 0x34);
+  ASSERT(get_b(p1) == 0x56);
+  ASSERT(get_a(p1) == 0x78);
+
+  // Test with higher bits 
+  uint32_t p2 = 0x80F0ABFF; 
+  ASSERT(get_r(p2) == 0x80);
+  ASSERT(get_g(p2) == 0xF0);
+  ASSERT(get_b(p2) == 0xAB);
+  ASSERT(get_a(p2) == 0xFF);
+
+  // Test with all 0s 
+  uint32_t p3 = 0x00; 
+  ASSERT(get_r(p3) == 0x00); 
+  ASSERT(get_b(p3) == 0x00); 
+  ASSERT(get_g(p3) == 0x00); 
+  ASSERT(get_a(p3) == 0x00); 
+}
+
+void test_make_pixel( TestObjs *objs ) {
+  // Basic test 
+  ASSERT(make_pixel(0x12, 0x34, 0x56, 0x78) == 0x12345678);
+
+  // Test with all 0s 
+  ASSERT(make_pixel(0, 0, 0, 0) == 0x00000000);
+
+  // Test with max bits 
+  ASSERT(make_pixel(255, 255, 255, 255) == 0xFFFFFFFF);
+} 
+
+void test_valid_index( TestObjs *objs ) {
+  // Test corners 
+  ASSERT(valid_index(&objs->smol, 0, 0) == 1); 
+  ASSERT(valid_index(&objs->smol, objs->smol.height - 1, objs->smol.width - 1) == 1);
+
+  // Test pixels just out of bounds 
+  ASSERT(valid_index(&objs->smol, objs->smol.height, 0) == 0);
+  ASSERT(valid_index(&objs->smol, 0, objs->smol.width) == 0);
+
+  // Test Negative values
+  ASSERT(valid_index(&objs->smol, -1, 0) == 0);
+  ASSERT(valid_index(&objs->smol, 0, -1) == 0);
+}
+
+void test_compute_index( TestObjs *objs ) {
+  // Basic tests
+  ASSERT(compute_index(&objs->smol, 0, 0) == 0); 
+  ASSERT(compute_index(&objs->smol, 0, 1) == 1); 
+  ASSERT(compute_index(&objs->smol, 1, 1) == objs->smol.width + 1); 
+  ASSERT(compute_index(&objs->smol, objs->smol.height - 1, objs->smol.width - 1) == (objs->smol.height - 1) * objs->smol.width + objs->smol.width - 1); 
+}
+
+void test_blur_pixel( TestObjs *objs ) {
+  // Dist 0 test 
+  uint32_t og1 = objs->smol.data[compute_index(&objs->smol, 1, 1)];
+  uint32_t blur1 = blur_pixel(&objs->smol, 1, 1, 0);
+  ASSERT(blur1 == og1);
+
+  // Dist 3 tests 
+  // Basic test 
+  uint32_t blur2 = blur_pixel(&objs->smol, 5, 5, 3); 
+  ASSERT(blur2 == objs->smol_blur_3.data[compute_index(&objs->smol, 5, 5)]); 
+
+  // Edge tests 
+  uint32_t blur3 = blur_pixel(&objs->smol, objs->smol.height - 1, 6, 3); 
+  ASSERT(blur3 == objs->smol_blur_3.data[compute_index(&objs->smol, objs->smol.height - 1, 6)]); 
+
+  // Corner test
+  uint32_t blur4 = blur_pixel(&objs->smol, 0, objs->smol.width - 1, 3); 
+  ASSERT(blur4 == objs->smol_blur_3.data[compute_index(&objs->smol, 0, objs->smol.width - 1)]); 
+}
+
+void test_rot_colors( TestObjs *objs ) {
+  // Basic test 
+  uint32_t p1 = 0x12345678; 
+  struct Image img1 = { 1, 1, &p1 };
+  ASSERT(rot_colors(&img1, 0) == 0x56123478);
+
+  // Test with all 0s 
+  uint32_t p2 = 0x00; 
+  struct Image img2 = { 1, 1, &p2 };
+  ASSERT(rot_colors(&img2, 0) == 0x00);
+
+  // Test with higher bits 
+  uint32_t p3 = 0x80F0ABFF; 
+  struct Image img3 = { 1, 1, &p3 }; 
+  ASSERT(rot_colors(&img3, 0) == 0xAB80F0FF); 
+} 
+
+void test_expand_even_even( TestObjs *objs ) {} 
+
+void test_expand_even_odd( TestObjs *objs ) {} 
+
+void test_expand_odd_even( TestObjs *objs ) {} 
+
+void test_expand_odd_odd( TestObjs *objs ) {} 
+
+void test_pa_init( TestObjs *objs ) {} 
+
+void test_pa_update( TestObjs *objs ) {} 
+
+void test_pa_update_from_img( TestObjs *objs ) {} 
+
+void test_pa_avg_pixel( TestObjs *objs ) {} 
