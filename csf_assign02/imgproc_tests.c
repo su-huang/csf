@@ -86,6 +86,14 @@ int main( int argc, char **argv ) {
   TEST( test_compute_index ); 
   TEST( test_blur_pixel ); 
   TEST( test_rot_colors ); 
+  TEST( test_expand_even_even );
+  TEST( test_expand_even_odd ); 
+  TEST( test_expand_odd_even ); 
+  TEST( test_expand_odd_odd ); 
+  TEST( test_pa_init ); 
+  TEST( test_pa_update ); 
+  TEST( test_pa_update_from_img ); 
+  TEST( test_pa_avg_pixel ); 
 
   TEST_FINI();
 }
@@ -305,18 +313,125 @@ void test_rot_colors( TestObjs *objs ) {
   ASSERT(rot_colors(&img3, 0) == 0xAB80F0FF); 
 } 
 
-void test_expand_even_even( TestObjs *objs ) {} 
+void test_expand_even_even( TestObjs *objs ) {
+  // Basic test 
+  uint32_t p1 = expand_even_even(&objs->smol, 2, 2);
+  ASSERT(p1 == objs->smol_expand.data[compute_index(&objs->smol_expand, 2, 2)]);
 
-void test_expand_even_odd( TestObjs *objs ) {} 
+  // Corner pixel test 
+  uint32_t p2 = expand_even_even(&objs->smol, 0, 0); 
+  ASSERT(p2 == objs->smol_expand.data[0]); 
 
-void test_expand_odd_even( TestObjs *objs ) {} 
+  // Edge pixel test 
+  uint32_t p3 = expand_even_even(&objs->smol, 0, 4);
+  ASSERT(p3 == objs->smol_expand.data[compute_index(&objs->smol_expand, 0, 4)]); 
+} 
 
-void test_expand_odd_odd( TestObjs *objs ) {} 
+void test_expand_even_odd( TestObjs *objs ) {
+  // Basic test 
+  uint32_t p1 = expand_even_odd(&objs->smol, 2, 5); 
+  ASSERT(p1 == objs->smol_expand.data[compute_index(&objs->smol_expand, 2, 5)]); 
 
-void test_pa_init( TestObjs *objs ) {} 
+  // Edge pixel test
+  uint32_t p2 = expand_even_odd(&objs->smol, 0, 5); 
+  ASSERT(p2 == objs->smol_expand.data[5]); 
+} 
 
-void test_pa_update( TestObjs *objs ) {} 
+void test_expand_odd_even( TestObjs *objs ) {
+  // Basic test 
+  uint32_t p1 = expand_odd_even(&objs->smol, 17, 4); 
+  ASSERT(p1 == objs->smol_expand.data[compute_index(&objs->smol_expand, 17, 4)]); 
 
-void test_pa_update_from_img( TestObjs *objs ) {} 
+  // Edge pixel test 
+  uint32_t p2 = expand_odd_even(&objs->smol, 19, 14); 
+  ASSERT(p2 == objs->smol_expand.data[compute_index(&objs->smol_expand, 19, 14)]); 
+} 
 
-void test_pa_avg_pixel( TestObjs *objs ) {} 
+void test_expand_odd_odd( TestObjs *objs ) {
+  // Basic tests 
+  uint32_t p1 = expand_odd_odd(&objs->smol, 9, 9); 
+  ASSERT(p1 == objs->smol_expand.data[compute_index(&objs->smol_expand, 9, 9)]); 
+
+  uint32_t p2 = expand_odd_odd(&objs->smol, 1, 3); 
+  ASSERT(p2 == objs->smol_expand.data[compute_index(&objs->smol_expand, 1, 3)]); 
+} 
+
+void test_pa_init( TestObjs *objs ) {
+  // Basic test 
+  struct PixelAverager pa;
+  pa_init(&pa);
+  ASSERT(pa.r == 0);
+  ASSERT(pa.g == 0);
+  ASSERT(pa.b == 0);
+  ASSERT(pa.a == 0);
+  ASSERT(pa.count == 0);
+
+  // Test re-initialize with existing values 
+  pa.r = 10; 
+  pa.g = 10; 
+  pa.b = 10; 
+  pa.a = 10; 
+  pa.count++; 
+  pa_init(&pa); 
+  ASSERT(pa.r == 0);
+  ASSERT(pa.g == 0);
+  ASSERT(pa.b == 0);
+  ASSERT(pa.a == 0);
+  ASSERT(pa.count == 0);
+} 
+
+void test_pa_update( TestObjs *objs ) {
+  // Basic test
+  struct PixelAverager pa;
+  pa_init(&pa);
+  pa_update(&pa, make_pixel(10, 20, 30, 40)); 
+  ASSERT(pa.r == 10); 
+  ASSERT(pa.g == 20); 
+  ASSERT(pa.b == 30); 
+  ASSERT(pa.a == 40); 
+  ASSERT(pa.count == 1); 
+
+  // Test more accumulation 
+  pa_update(&pa, make_pixel(1, 2, 3, 4)); 
+  ASSERT(pa.r == 11); 
+  ASSERT(pa.g == 22); 
+  ASSERT(pa.b == 33); 
+  ASSERT(pa.a == 44); 
+  ASSERT(pa.count == 2); 
+} 
+
+void test_pa_update_from_img( TestObjs *objs ) {
+  // Basic test
+  struct PixelAverager pa; 
+  pa_init(&pa); 
+  pa_update_from_img(&objs->smol, 0, 0, &pa); 
+  ASSERT(pa.r == get_r(objs->smol.data[0])); 
+  ASSERT(pa.g == get_g(objs->smol.data[0])); 
+  ASSERT(pa.b == get_b(objs->smol.data[0])); 
+  ASSERT(pa.count == 1); 
+
+  // Test more accumulation 
+  pa_update_from_img(&objs->smol, 4, 9, &pa); 
+  ASSERT(pa.r == get_r(objs->smol.data[0]) + get_r(objs->smol.data[compute_index(&objs->smol, 4, 9)])); 
+  ASSERT(pa.g == get_g(objs->smol.data[0]) + get_g(objs->smol.data[compute_index(&objs->smol, 4, 9)])); 
+  ASSERT(pa.b == get_b(objs->smol.data[0]) + get_b(objs->smol.data[compute_index(&objs->smol, 4, 9)])); 
+  ASSERT(pa.count == 2); 
+} 
+
+void test_pa_avg_pixel( TestObjs *objs ) {
+  // Test when count = 0 
+  struct PixelAverager pa; 
+  pa_init(&pa); 
+  ASSERT(pa_avg_pixel(&pa, 0, 0) == make_pixel(0, 0, 0, 0)); 
+  
+  // Basic test
+  pa_update(&pa, make_pixel(10, 20, 30, 40)); 
+  ASSERT(pa_avg_pixel(&pa, 0, 0) == make_pixel(10, 20, 30, 40)); 
+
+  // Test more accumulation 
+  pa_update(&pa, make_pixel(2, 1, 0, 10)); 
+  ASSERT(pa_avg_pixel(&pa, 0, 0) == make_pixel(6, 10, 15, 25)); 
+
+  // Test set default alpha 
+  ASSERT(pa_avg_pixel(&pa, 1, 9) == make_pixel(6, 10, 15, 9)); 
+} 
