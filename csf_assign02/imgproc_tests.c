@@ -1,4 +1,11 @@
-#include <assert.h>
+/*
+ * Tests for image manipulation and helper functions 
+ * CSF Assignment 2
+ * Su Huang 
+ * shuan148@jh.edu
+ */
+
+ #include <assert.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include "tctest.h"
@@ -29,7 +36,6 @@ typedef struct {
   struct Image smol, smol_squash_1_1, smol_squash_3_1, smol_squash_1_3,
                smol_color_rot, smol_blur_0, smol_blur_3, smol_expand;
 
-  // TODO: add additional test fixture data as needed
 } TestObjs;
 
 // Functions to create and clean up a test fixture object
@@ -48,7 +54,6 @@ void test_color_rot_basic( TestObjs *objs );
 void test_blur_basic( TestObjs *objs );
 void test_expand_basic( TestObjs *objs );
 
-// TODO: add prototypes for additional test functions
 void test_get_rgba( TestObjs *objs ); 
 void test_make_pixel( TestObjs *objs ); 
 void test_valid_index( TestObjs *objs ); 
@@ -121,8 +126,6 @@ TestObjs *setup( void ) {
 void cleanup( TestObjs *objs ) {
   // Note that the test Images don't need to be cleaned
   // up, because their data isn't dynamically allocated
-
-  // TODO: clean up any test fixture data
 
   free( objs );
 }
@@ -218,8 +221,7 @@ void test_expand_basic( TestObjs *objs ) {
   XFORM_TEST( expand );
 }
 
-// TODO: define additional test functions
-
+//! Test extraction of R, G, B, and A components from a pixel
 void test_get_rgba( TestObjs *objs ) {
   // Basic test 
   uint32_t p1 = 0x12345678;
@@ -243,6 +245,7 @@ void test_get_rgba( TestObjs *objs ) {
   ASSERT(get_a(p3) == 0x00); 
 }
 
+//! Test concatenation of R, G, B, and A components into a pixel
 void test_make_pixel( TestObjs *objs ) {
   // Basic test 
   ASSERT(make_pixel(0x12, 0x34, 0x56, 0x78) == 0x12345678);
@@ -254,6 +257,7 @@ void test_make_pixel( TestObjs *objs ) {
   ASSERT(make_pixel(255, 255, 255, 255) == 0xFFFFFFFF);
 } 
 
+//! Test index validation from based on image dimensions 
 void test_valid_index( TestObjs *objs ) {
   // Test corners 
   ASSERT(valid_index(&objs->smol, 0, 0) == 1); 
@@ -268,6 +272,7 @@ void test_valid_index( TestObjs *objs ) {
   ASSERT(valid_index(&objs->smol, 0, -1) == 0);
 }
 
+//! Test computation of row-major order index 
 void test_compute_index( TestObjs *objs ) {
   // Basic tests
   ASSERT(compute_index(&objs->smol, 0, 0) == 0); 
@@ -276,6 +281,7 @@ void test_compute_index( TestObjs *objs ) {
   ASSERT(compute_index(&objs->smol, objs->smol.height - 1, objs->smol.width - 1) == (objs->smol.height - 1) * objs->smol.width + objs->smol.width - 1); 
 }
 
+//! Test neighbour averaging for blur effect 
 void test_blur_pixel( TestObjs *objs ) {
   // Dist 0 test 
   uint32_t og1 = objs->smol.data[compute_index(&objs->smol, 1, 1)];
@@ -296,6 +302,7 @@ void test_blur_pixel( TestObjs *objs ) {
   ASSERT(blur4 == objs->smol_blur_3.data[compute_index(&objs->smol, 0, objs->smol.width - 1)]); 
 }
 
+//! Test rotation of colour channels 
 void test_rot_colors( TestObjs *objs ) {
   // Basic test 
   uint32_t p1 = 0x12345678; 
@@ -313,6 +320,7 @@ void test_rot_colors( TestObjs *objs ) {
   ASSERT(rot_colors(&img3, 0) == 0xAB80F0FF); 
 } 
 
+//! Test expansion where output pixels map exactly to an existing input pixel
 void test_expand_even_even( TestObjs *objs ) {
   // Basic test 
   uint32_t p1 = expand_even_even(&objs->smol, 2, 2);
@@ -327,6 +335,7 @@ void test_expand_even_even( TestObjs *objs ) {
   ASSERT(p3 == objs->smol_expand.data[compute_index(&objs->smol_expand, 0, 4)]); 
 } 
 
+//! Test expansion case where output pixels are a horizontal average of two input pixels
 void test_expand_even_odd( TestObjs *objs ) {
   // Basic test 
   uint32_t p1 = expand_even_odd(&objs->smol, 2, 5); 
@@ -337,6 +346,7 @@ void test_expand_even_odd( TestObjs *objs ) {
   ASSERT(p2 == objs->smol_expand.data[5]); 
 } 
 
+//! Test expansion case where output pixels are a vertical average of two input pixels
 void test_expand_odd_even( TestObjs *objs ) {
   // Basic test 
   uint32_t p1 = expand_odd_even(&objs->smol, 17, 4); 
@@ -347,6 +357,7 @@ void test_expand_odd_even( TestObjs *objs ) {
   ASSERT(p2 == objs->smol_expand.data[compute_index(&objs->smol_expand, 19, 14)]); 
 } 
 
+//! Test expansion case where output pixels are an average of four input pixels
 void test_expand_odd_odd( TestObjs *objs ) {
   // Basic tests 
   uint32_t p1 = expand_odd_odd(&objs->smol, 9, 9); 
@@ -356,6 +367,7 @@ void test_expand_odd_odd( TestObjs *objs ) {
   ASSERT(p2 == objs->smol_expand.data[compute_index(&objs->smol_expand, 1, 3)]); 
 } 
 
+//! Test initialization of PixelAverager struct
 void test_pa_init( TestObjs *objs ) {
   // Basic test 
   struct PixelAverager pa;
@@ -380,6 +392,7 @@ void test_pa_init( TestObjs *objs ) {
   ASSERT(pa.count == 0);
 } 
 
+//! Test accumulation of pixel components into PixelAverager
 void test_pa_update( TestObjs *objs ) {
   // Basic test
   struct PixelAverager pa;
@@ -400,6 +413,7 @@ void test_pa_update( TestObjs *objs ) {
   ASSERT(pa.count == 2); 
 } 
 
+//! Test retrieval and accumulation of pixel data from an image into PixelAverager
 void test_pa_update_from_img( TestObjs *objs ) {
   // Basic test
   struct PixelAverager pa; 
@@ -418,6 +432,7 @@ void test_pa_update_from_img( TestObjs *objs ) {
   ASSERT(pa.count == 2); 
 } 
 
+//! Test final calculation of average colour values and alpha override 
 void test_pa_avg_pixel( TestObjs *objs ) {
   // Test when count = 0 
   struct PixelAverager pa; 
@@ -432,6 +447,6 @@ void test_pa_avg_pixel( TestObjs *objs ) {
   pa_update(&pa, make_pixel(2, 1, 0, 10)); 
   ASSERT(pa_avg_pixel(&pa, 0, 0) == make_pixel(6, 10, 15, 25)); 
 
-  // Test set default alpha 
+  // Test alpha override 
   ASSERT(pa_avg_pixel(&pa, 1, 9) == make_pixel(6, 10, 15, 9)); 
 } 
