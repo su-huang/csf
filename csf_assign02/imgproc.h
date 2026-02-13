@@ -1,5 +1,9 @@
-// Header for image processing API functions (imgproc_complement, etc.)
-// as well as any helper functions they rely on.
+/*
+ * Header for image processing API functions as well as any helper functions they rely on
+ * CSF Assignment 2
+ * Su Huang 
+ * shuan148@jh.edu
+ */
 
 #ifndef IMGPROC_H
 #define IMGPROC_H
@@ -128,29 +132,117 @@ void imgproc_blur( struct Image *input_img, struct Image *output_img, int32_t bl
 //!                   transformed pixels should be stored)
 void imgproc_expand( struct Image *input_img, struct Image *output_img );
 
-// TODO: add prototypes for your helper functions
-
+//! Gets the R value of the pixel 
+//! @param pixel complete pixel value 
+//! @return uint32 containing R value 
 uint32_t get_r( uint32_t pixel );
+
+//! Gets the G value of the pixel 
+//! @param pixel complete pixel value 
+//! @return uint32 containing G value 
 uint32_t get_g( uint32_t pixel );
+
+//! Gets the B value of the pixel 
+//! @param pixel complete pixel value 
+//! @return uint32 containing B value 
 uint32_t get_b( uint32_t pixel );
+
+//! Gets the alpha value of the pixel 
+//! @param pixel complete pixel value 
+//! @return uint32 containing alpha value 
 uint32_t get_a( uint32_t pixel );
+
+//! Concatenates the RGB and alpha values into a pixel representation 
+//! @param r value of R component
+//! @param g value of G component 
+//! @param b value of B component 
+//! @param a value of alpha component 
+//! @return pixel representing these values 
 uint32_t make_pixel( uint32_t r, uint32_t g, uint32_t b, uint32_t a );
+
+//! Determines if the row and col indices provided are valid in the image 
+//! @param img pointer to the image 
+//! @param row 2D row index of the pixel 
+//! @param col 2D column index of the pixel
+//! @return 1 if valid index, 0 otherwise 
 int32_t valid_index( struct Image *img, int32_t row, int32_t col ); 
+
+//! Computes the row-major index of the pixel expressed in 2D indexing 
+//! @param img pointer to the image 
+//! @param row 2D row index of the pixel 
+//! @param col 2D column index of the pixel
+//! @return corresponding 1D, row-major index of the pixel 
 int32_t compute_index( struct Image *img, int32_t row, int32_t col );
+
+//! Applies blur to a single pixel by averaging neighbouring pixels' RGB values 
+//! @param img pointer to the image 
+//! @param row 2D row index of the pixel 
+//! @param col 2D column index of the pixel
+//! @param blur_dist sets range x/y of pixels to blur from the starting pixel 
+//! @return pixel with average of RGB values, maintaining alpha value of initial pixel 
 uint32_t blur_pixel( struct Image *img, int32_t row, int32_t col, int32_t blur_dist );
+
+//! Rotates the RGB colours of a pixel to BRG 
+//! @param img pointer to the image 
+//! @param index 1D, row-major order of the pixel 
+//! @return pixel with rotated RGB values 
 uint32_t rot_colors( struct Image *img, int32_t index );
+
+//! Assigns output pixel the input pixel at row i/2 and col j/2 for even row and col indices 
+//! @param img pointer to the image 
+//! @param row 2D row index of the pixel 
+//! @param col 2D column index of the pixel
+//! @return output pixel with the corresponding RGB and alpha values 
 uint32_t expand_even_even (struct Image *img, int32_t row, int32_t col ); 
+
+//! Assigns output pixel the average of the input pixels at row i/2 and col j/2 and j/2 + 1 for even rol and odd col indices 
+//! @param img pointer to the image 
+//! @param row 2D row index of the pixel 
+//! @param col 2D column index of the pixel
+//! @return output pixel with the corresponding RGB and alpha values 
 uint32_t expand_even_odd (struct Image *img, int32_t row, int32_t col ); 
+
+//! Assigns output pixel the average of the input pixels at row i/2  and i/2 + 1 and col j/2 for odd rol and even col indices 
+//! @param img pointer to the image 
+//! @param row 2D row index of the pixel 
+//! @param col 2D column index of the pixel
+//! @return output pixel with the corresponding RGB and alpha values 
 uint32_t expand_odd_even (struct Image *img, int32_t row, int32_t col ); 
+
+//! Assigns output pixel the average of the input pixels at row i/2  and i/2 + 1 and col j/2 and j/2 + 1 for odd rol and col indices 
+//! @param img pointer to the image 
+//! @param row 2D row index of the pixel 
+//! @param col 2D column index of the pixel
+//! @return output pixel with the corresponding RGB and alpha values 
 uint32_t expand_odd_odd (struct Image *img, int32_t row, int32_t col ); 
 
+//! Stores accumulations of each colour channel and the number of pixels counted 
 struct PixelAverager {
   uint32_t r, g, b, a, count;
 };
 
+//! Sets all colour accumulations and pixel count to zero
+//! @param pa pointer to the PixelAverager 
 void pa_init( struct PixelAverager *pa );
+
+//! Adds the RGB and alpha values of the pixel to the running total 
+//! @param pa pointer to the PixelAverager 
+//! @param pixel complete pixel value 
 void pa_update( struct PixelAverager *pa, uint32_t pixel );
+
+//! Adds the RGB and alpha values of the pixel from the image to the running total 
+//! @param img pointer to the image 
+//! @param row 2D row index of the pixel 
+//! @param col 2D column index of the pixel
+//! @param pa pointer to the PixelAverager 
 void pa_update_from_img( struct Image *img, int32_t row, int32_t col, struct PixelAverager *pa );
+
+//! Computes the average of each accumulation and returns a pixel
+//! May set alpha to a default value 
+//! @param pa pointer to the PixelAverager 
+//! @param default_alpha 1 to set a default value, 0 otherwise 
+//! @param img_alpha default alpha value 
+//! @return output pixel with the corresponding RGB and alpha values 
 uint32_t pa_avg_pixel( struct PixelAverager *pa, uint32_t default_alpha, uint32_t img_alpha );
 
 #endif 
