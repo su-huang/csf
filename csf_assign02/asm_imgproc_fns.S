@@ -160,9 +160,121 @@ compute_index:
  *  @param xfac factor to downsize the image horizontally; guaranteed to be positive
  *  @param yfac factor to downsize the image vertically; guaranteed to be positive
  */
+
+ /* 
+  * Modifies output image to shrink image horizontally and vertically 
+  * C function: void imgproc_squash( struct Image *input_img, struct Image *output_img, int32_t xfac, int32_t yfac )
+  * 
+  * Parameters: 
+  * 	%rdi - contains 64-bit input Image pointer 
+  * 	%rsi - contains 64-bit output Image pointer 
+  *		%edx - contains 32-bit xfac 
+  *		%ecx - contains 32-bit yfac 
+  *
+  * Register use: 
+  * 	%r12 - input Image pointer 
+  * 	%r13 - output Image pointer 
+  *		%r14d - xfac 
+  * 	%r15d - yfac 
+  *		%ebx - current output row index 	
+  * 
+  * Memory use: 
+  *		-8(%rbp) - %r12 (input Image pointer)
+  * 	-16(%rbp) - %r13 (output Image pointer)
+  *		-24(%rbp) - %r14 (xfac) 
+  * 	-32(%rbp) - %r15 (yfac) 
+  *		-40(%rbp) - %rbx (current output row index) 
+  * 	-48(%rbp) - from %rsp stack alignment 
+  * 	
+  */ 
 	.globl imgproc_squash
 imgproc_squash:
 	/* TODO: implement */
+	/* prologue */ 
+	pushq %rbp 			/* save previous value in %rbp */ 
+	movq %rsp, %rbp 	/* save top of stack from %rsp to %rbp */ 
+
+	
+	/* stores local variables on the stack */
+	pushq %r12		/* will store input Image pointer */
+	pushq %r13 		/* will store output Image pointer */ 
+	pushq %r14		/* will store xfac */ 
+	pushq %r15 		/* will store yfac */ 
+	pushq %rbx 		/* will store current index */ 
+	subq $8, %rsp 	/* align %rsp to be a multiple of 16 */
+
+	movq %rdi, %r12 	/* move input Image pointer from %rdi to %r12 */ 
+	movq %rsi, %r13 	/* move output Image pointer from %rsi to %r13 */ 
+	movl %edx, %r14d	/* move xfac from %edx to %r14d */ 
+	movl %ecx, %r15d 	/* move yfac from %ecx to %r15d */ 
+
+	/* initializes output image dimensions: img_init(output_img, input_img->width / xfac, input_img->height / yfac) */
+	movl IMAGE_WIDTH_OFFSET(%r12), %eax		/* dereference pointer to width (32-bit) in %r12 and move to %eax */ 
+	cltd 									/* make 64-bit version spread across %edx:%eax for 64-bit division */
+	idivl %r14d 							/* divide 64-bit width by 32-bit xfac and store quotient in %eax, remainder in %edx*/
+	movl %eax, %esi 						/* move quotient (output image width) from %eax to %esi (2nd arg for img_init) */
+
+	movl IMAGE_HEIGHT_OFFSET(%r12), %eax 	/* dereference pointer to height (32-bit) in %r12 and move to %eax */ 
+	cltd 									/* make 64-bit version spread across %edx:%eax for 64-bit division */
+	idivl %r15d 							/* divide 64-bit height by 32-bit yfac and store quotient in %eax, remainder in %edx*/
+	movl %eax, %edx  						/* move quotient (output image height) from %eax to %edx (3rd arg for img_init) */
+
+	movq %r13, %rdi 						/* move ouput image pointer from r13 to %rdi (1st arg for img_init) */ 
+	call img_init							/* call img_init and return in %eax */ 
+	
+	cmpl $0, %eax		/* compare 0 with return from img_init */ 	
+	jne .Lsquash_done	/* jump to end if return value != 0 */
+
+	movl $0, %ebx 		/* move 0 to %ebx (row index) */ 
+
+.Lsquash_loop_row: 
+	cmpl IMAGE_HEIGHT_OFFSET(%r13), %ebx	/* compare output image height with row index */
+	jge .Lsquash_done 						/* jump to end if row index >= output image height */
+
+	movl $0, %r10d 		/* move 0 to %r10d (col index) */ 
+
+.Lsquash_loop_col: 
+	cmpl IMAGE_WIDTH_OFFSET(%r13), %r10d 	/* compare output image width with col index */ 
+	jge .Lsquash_next_row					/* jump to end if col index >= output image width */ 
+
+	/* find input index: compute_index(input_img, row * yfac, col * xfac) */ 
+	movq %r12, %rdi 		/* move input image pointer from %r12 to %rdi (1st arg for compute_index) */ 
+	movl %ebx, %esi 		/* move output row index from %ebx to %esi */ 
+	imull %r15d, %esi 		/* multiply yfac with output image row and store result in %esi (2nd arg for compute_index) */ 
+	movl %r10d, %edx 		/* move output col index from %r10d to %edx */ 
+	imull %r14d, %edx 		/* multiply xfac with output image col and store result in %edx (3rd arg for compute_index) */ 
+	call compute_index 		/* call compute_index and return input image index in %eax */ 
+	movl %eax, %r11d 		/* move input image index from %eax to %r11d */ 
+
+	/* find output index: compute_index(output_img, row, col) */ 
+	movq %r13, %rdi 		/* move output image pointer from %r13 to %rdi (1st arg for compute_index) */ 
+	movl %ebx, %esi 		/* move output row index from %ebx to %esi (2nd arg for compute_index) */  
+	movl %r10d, %edx 		/* move output col index from %r10d to %edx (3rd arg for compute_index) */ 
+	call compute_index		/* call compute_index and return output image index in %eax */ 
+
+	/* assign input image pixel to output image pixel */ 
+	movq IMAGE_DATA_OFFSET(%r12), %r8		/* dereference pointer to input image pixel and move from %r12 to %r8 */
+	movl (%r8, %r11, 4), %r9d				/* move pixel at input image index from %r8 + (%r11 * 4) to %r9d */ 
+	movq IMAGE_DATA_OFFSET(%r13), %r8		/* dereference pointer to output image pixel and move from %r13 to %r8 */
+	movl %r9d, (%r8, %rax, 4)				/* move pixel of input image index from %r9d to pixel at output image index at %r8 + (%rax * 4) */ 
+
+	incl %r10d 					/* increment column index */
+	jmp .Lsquash_loop_col		/* repeat column loop */ 
+
+.Lsquash_next_row: 
+	incl %ebx 					/* increement row index */ 
+	jmp .Lsquash_loop_row 		/* repeat row loop */ 
+
+.Lsquash_done: 
+	/* analogue */ 
+	addq $8, %rsp	/* remove alignment */ 
+	popq %rbx 		/* restore callee-saved registers*/
+	popq %r15 
+	popq %r14
+	popq %r13
+	popq %r12 
+	popq %rbp 
+
 	ret
 
 /*
