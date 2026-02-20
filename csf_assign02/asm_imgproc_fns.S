@@ -193,15 +193,12 @@ imgproc_squash:
 	/* prologue */ 
 	pushq %rbp 			/* save previous value in %rbp */ 
 	movq %rsp, %rbp 	/* save top of stack from %rsp to %rbp */ 
-
-	
-	/* stores local variables on the stack */
+	subq $8, %rsp 	/* align %rsp to be a multiple of 16 */
 	pushq %r12		/* will store input Image pointer */
 	pushq %r13 		/* will store output Image pointer */ 
 	pushq %r14		/* will store xfac */ 
 	pushq %r15 		/* will store yfac */ 
 	pushq %rbx 		/* will store current index */ 
-	subq $8, %rsp 	/* align %rsp to be a multiple of 16 */
 
 	movq %rdi, %r12 	/* move input Image pointer from %rdi to %r12 */ 
 	movq %rsi, %r13 	/* move output Image pointer from %rsi to %r13 */ 
