@@ -173,12 +173,10 @@ rot_colors:
 	call get_r 				/* call get_r and return in %eax */ 
 	movl %eax, %r14d 		/* move output G from %eax to %r14d */ 
 
-	movl %r12d, %edi 		/* move input image pixel from %r12d to %edi (1st arg for compute_index) */ 
-	call get_g				/* call get_g and return in %eax */ 
+	call get_g				/* call get_g and return in %eax (input image pixel still in %edi) */ 
 	movl %eax, %r15d 		/* move output B from %eax to %r15d */ 
 
-	movl %r12d, %edi 		/* move input image pixel from %r12d to %edi (1st arg for compute_index) */ 
-	call get_a 				/* call get_a and return in %eax */ 
+	call get_a 				/* call get_a and return in %eax (input image pixel still in %edi) */ 
 	movl %eax, %ebx 		/* move alpha from %eax to %ebx */ 
 
 	/* make pixel from new values: make_pixel(new_r, new_g, new_b, a)*/
