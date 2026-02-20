@@ -10,58 +10,114 @@
 #define IMAGE_DATA_OFFSET    8
 
 /*
- * TODO: define your helper functions here.
- * Don't forget to use the .globl directive to make
- * them visible to the test code.
- */
-
-/*
  * Gets the R value of the pixel 
+ * C function: uint32_t get_r( uint32_t pixel )
  *
  * Parameters: 
- *	%edi - contains the 32-bit pixel value 
+ *	%edi - contains 32-bit pixel value 
  *
  * Returns: 
- *	32-bit value representing R
+ *	%eax - 32-bit value representing R
  */
 	.globl get_r
 get_r: 
 	movl %edi, %eax  	/* move pixel from %edi to %eax */
 	shrl $24, %eax		/* right shift pixel in %eax by 24 bits */
 	andl $0xff, %eax 	/* isolate R value */
-	ret 
+	ret 				/* return R in %eax */ 
 
 /*
  * Gets the G value of the pixel 
+* C function: uint32_t get_g( uint32_t pixel )
  *
  * Parameters: 
- *	%edi - contains the 32-bit pixel value 
+ *	%edi - contains 32-bit pixel value 
  *
  * Returns: 
- *	32-bit value representing G
+ *	%eax - 32-bit value representing G
  */
 	.globl get_g
 get_g: 
 	movl %edi, %eax  	/* move pixel from %edi to %eax */
 	shrl $16, %eax		/* right shift pixel in %eax by 16 bits */
 	andl $0xff, %eax 	/* isolate G value */
-	ret 
+	ret 				/* return G in %eax */ 
 
 /*
  * Gets the B value of the pixel 
+ * C function: uint32_t get_b( uint32_t pixel )
  *
  * Parameters: 
- *	%edi - contains the 32-bit pixel value 
+ *	%edi - contains 32-bit pixel value 
  *
  * Returns: 
- *	32-bit value representing B
+ *	%eax - 32-bit value representing B
  */
 	.globl get_b
 get_b: 
 	movl %edi, %eax  	/* move pixel from %edi to %eax */
 	shrl $8, %eax		/* right shift pixel in %eax by 8 bits */
 	andl $0xff, %eax 	/* isolate B value */
-	ret 
+	ret 				/* return B in %eax */ 
+
+/*
+ * Gets the alpha value of the pixel 
+ * C function: uint32_t get_a( uint32_t pixel )
+ *
+ * Parameters: 
+ *	%edi - contains 32-bit pixel value 
+ *
+ * Returns: 
+ *	%eax - 32-bit value representing alpha
+ */
+	.globl get_a
+get_a: 
+	movl %edi, %eax  	/* move pixel from %edi to %eax */
+	andl $0xff, %eax 	/* isolate alpha value */
+	ret 				/* return alpha in %eax */ 
+
+/*
+ * Concatenates the RGB and alpha values into a pixel representation 
+ * C function: uint32_t make_pixel( uint32_t r, uint32_t g, uint32_t b, uint32_t a )
+ *
+ * Parameters: 
+ *	%edi - contains 32-bit R value 
+ * 	%esi - contains 32-bit G value 
+ *	%edx - contains 32-bit B value
+ *  %ecx - contains 32-bit alpha value 
+ * 
+ * Returns: 
+ *	%eax - 32-bit pixel representing these values 
+ */ 
+	.globl make_pixel
+make_pixel: 
+	shll $24, %edi 		/* right shift R in %edi by 24 bits */
+	shll $16, %esi 		/* right shift G in %esi by 16 bits */
+	shll $8, %edx 		/* right shift B in %edx by 8 bits */
+	orl %esi, %edi 		/* OR R with G to combine and store in %edi */
+	orl %edx, %edi 		/* OR B with R and G to combine and store in %edi */ 
+	orl %ecx, %edi 		/* OR alpha with R and G and B to combine and store in %edi */
+	movl %edi, %eax 	/* move pixel from %edi to %eax */
+	ret 				/* return pixel in %eax */ 	
+
+/*
+ * Computes the row-major index of the pixel expressed in 2D indexing 
+ * C function: int32_t compute_index( struct Image *img, int32_t row, int32_t col )
+ * 
+ * Parameters: 
+ *	%rdi - contains 64-bit Image pointer 
+ * 	%esi - contains 32-bit row index 
+ *	%edx - contains 32-bit col index 
+ * 
+ * Returns: 
+ *	%eax - 32-bit row-major index of the pixel
+ */ 
+	.globl compute_index
+compute_index: 
+	movl IMAGE_WIDTH_OFFSET(%rdi), %eax		/* dereference pointer to width (32-bit) in %rdi and move to %eax */ 
+	imull %esi, %eax 						/* multiply row with width and store in %eax */ 
+	addl %edx, %eax 						/* add column with row * width and store in %eax */ 
+	ret 									/* return index in %eax */ 
 
 /*
  * Definitions of image transformation functions
