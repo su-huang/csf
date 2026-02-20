@@ -16,6 +16,54 @@
  */
 
 /*
+ * Gets the R value of the pixel 
+ *
+ * Parameters: 
+ *	%edi - contains the 32-bit pixel value 
+ *
+ * Returns: 
+ *	32-bit value representing R
+ */
+	.globl get_r
+get_r: 
+	movl %edi, %eax  	/* move pixel from %edi to %eax */
+	shrl $24, %eax		/* right shift pixel in %eax by 24 bits */
+	andl $0xff, %eax 	/* isolate R value */
+	ret 
+
+/*
+ * Gets the G value of the pixel 
+ *
+ * Parameters: 
+ *	%edi - contains the 32-bit pixel value 
+ *
+ * Returns: 
+ *	32-bit value representing G
+ */
+	.globl get_g
+get_g: 
+	movl %edi, %eax  	/* move pixel from %edi to %eax */
+	shrl $16, %eax		/* right shift pixel in %eax by 16 bits */
+	andl $0xff, %eax 	/* isolate G value */
+	ret 
+
+/*
+ * Gets the B value of the pixel 
+ *
+ * Parameters: 
+ *	%edi - contains the 32-bit pixel value 
+ *
+ * Returns: 
+ *	32-bit value representing B
+ */
+	.globl get_b
+get_b: 
+	movl %edi, %eax  	/* move pixel from %edi to %eax */
+	shrl $8, %eax		/* right shift pixel in %eax by 8 bits */
+	andl $0xff, %eax 	/* isolate B value */
+	ret 
+
+/*
  * Definitions of image transformation functions
  */
 
