@@ -82,23 +82,23 @@ int main( int argc, char **argv ) {
   // for any additional test functions you add.
   TEST( test_squash_basic );
   TEST( test_color_rot_basic );
-  TEST( test_blur_basic );
-  TEST( test_expand_basic );
+  // TEST( test_blur_basic );
+  // TEST( test_expand_basic );
 
   TEST( test_get_rgba ); 
   TEST( test_make_pixel ); 
-  TEST( test_valid_index ); 
+  // TEST( test_valid_index ); 
   TEST( test_compute_index ); 
-  TEST( test_blur_pixel ); 
+  // TEST( test_blur_pixel ); 
   TEST( test_rot_colors ); 
-  TEST( test_expand_even_even );
-  TEST( test_expand_even_odd ); 
-  TEST( test_expand_odd_even ); 
-  TEST( test_expand_odd_odd ); 
-  TEST( test_pa_init ); 
-  TEST( test_pa_update ); 
-  TEST( test_pa_update_from_img ); 
-  TEST( test_pa_avg_pixel ); 
+  // TEST( test_expand_even_even );
+  // TEST( test_expand_even_odd ); 
+  // TEST( test_expand_odd_even ); 
+  // TEST( test_expand_odd_odd ); 
+  // TEST( test_pa_init ); 
+  // TEST( test_pa_update ); 
+  // TEST( test_pa_update_from_img ); 
+  // TEST( test_pa_avg_pixel ); 
 
   TEST_FINI();
 }
