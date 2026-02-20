@@ -1,5 +1,8 @@
 /*
  * x86-64 assembly language implementations of functions
+ * CSF Assignment 2
+ * Su Huang 
+ * shuan148@jh.edu
  */
 
 	.section .text
@@ -14,7 +17,7 @@
  * C function: uint32_t get_r( uint32_t pixel )
  *
  * Parameters: 
- *	%edi - contains 32-bit pixel value 
+ *	%edi - 32-bit pixel value 
  *
  * Returns: 
  *	%eax - 32-bit value representing R
@@ -31,7 +34,7 @@ get_r:
 * C function: uint32_t get_g( uint32_t pixel )
  *
  * Parameters: 
- *	%edi - contains 32-bit pixel value 
+ *	%edi - 32-bit pixel value 
  *
  * Returns: 
  *	%eax - 32-bit value representing G
@@ -48,7 +51,7 @@ get_g:
  * C function: uint32_t get_b( uint32_t pixel )
  *
  * Parameters: 
- *	%edi - contains 32-bit pixel value 
+ *	%edi - 32-bit pixel value 
  *
  * Returns: 
  *	%eax - 32-bit value representing B
@@ -65,7 +68,7 @@ get_b:
  * C function: uint32_t get_a( uint32_t pixel )
  *
  * Parameters: 
- *	%edi - contains 32-bit pixel value 
+ *	%edi - 32-bit pixel value 
  *
  * Returns: 
  *	%eax - 32-bit value representing alpha
@@ -81,10 +84,10 @@ get_a:
  * C function: uint32_t make_pixel( uint32_t r, uint32_t g, uint32_t b, uint32_t a )
  *
  * Parameters: 
- *	%edi - contains 32-bit R value 
- * 	%esi - contains 32-bit G value 
- *	%edx - contains 32-bit B value
- *  %ecx - contains 32-bit alpha value 
+ *	%edi - 32-bit R value 
+ * 	%esi - 32-bit G value 
+ *	%edx - 32-bit B value
+ *  %ecx - 32-bit alpha value 
  * 
  * Returns: 
  *	%eax - 32-bit pixel representing these values 
@@ -105,9 +108,9 @@ make_pixel:
  * C function: int32_t compute_index( struct Image *img, int32_t row, int32_t col )
  * 
  * Parameters: 
- *	%rdi - contains 64-bit Image pointer 
- * 	%esi - contains 32-bit row index 
- *	%edx - contains 32-bit col index 
+ *	%rdi - 64-bit Image pointer 
+ * 	%esi - 32-bit row index 
+ *	%edx - 32-bit col index 
  * 
  * Returns: 
  *	%eax - 32-bit row-major index of the pixel
@@ -118,6 +121,124 @@ compute_index:
 	imull %esi, %eax 						/* multiply row with width and store in %eax */ 
 	addl %edx, %eax 						/* add column with row * width and store in %eax */ 
 	ret 									/* return index in %eax */ 
+
+
+/* 
+ * Rotates the RGB colours of a pixel to BRG 
+ * C function: uint32_t rot_colors( struct Image *img, int32_t index ) 
+ * 
+ * Parameters: 
+ * 	%rdi - 64-bit Image pointer 
+ * 	%esi - 32-bit index 
+ * 
+ * Returns: 
+ *	%eax - 32-bit rotated pixel 
+ * 
+ * Reguster use: 
+ * 	%r12d - pixel  
+ * 	%r13d - output R 
+ *	%r14d - output G 
+ * 	%r15d - output B
+ * 	%ebx - alpha 	
+ * 
+ * Memory use: 
+ *	-8(%rbp) - %r12d (pixel)
+ * 	-16(%rbp) - %r13d (output R)
+ *	-24(%rbp) - %r14d (output B) 
+ * 	-32(%rbp) - %r15d (output B) 
+ *  -40(%rbp) - %ebx (alpha)
+ * 	-48(%rbp) - %rsp stack alignment 
+ */ 
+	.globl rot_colors
+rot_colors:
+	/* prologue */ 
+	pushq %rbp 			/* save previous value in %rbp */ 
+	movq %rsp, %rbp 	/* save top of stack from %rsp to %rbp */ 
+	pushq %r12			/* will store pixel */
+	pushq %r13 			/* will store output R */ 
+	pushq %r14			/* will store output G */ 
+	pushq %r15 			/* will store output B */ 
+	pushq %rbx 			/* will store alpha */ 
+	subq $8, %rsp 		/* align %rsp to be a multiple of 16 */
+
+	movq IMAGE_DATA_OFFSET(%rdi), %rax		/* dereference pointer to input image pixel and move from %rdi to %rax */
+	movl (%rax, %rsi, 4), %r12d 			/* move pixel at input image index from %rax + (%esi * 4) to %r12d */ 
+
+	/* extract RGB values: get_b(pixel), get_g(pixel), get_r(pixel), get_a(pixel), */
+	movl %r12d, %edi 		/* move input image pixel from %r12d to %edi (1st arg for compute_index) */ 
+	call get_b 				/* call get_b and return in %eax */ 
+	movl %eax, %r13d 		/* move output R from %eax to %r13d */ 
+
+	movl %r12d, %edi 		/* move input image pixel from %r12d to %edi (1st arg for compute_index) */ 
+	call get_r 				/* call get_r and return in %eax */ 
+	movl %eax, %r14d 		/* move output G from %eax to %r14d */ 
+
+	movl %r12d, %edi 		/* move input image pixel from %r12d to %edi (1st arg for compute_index) */ 
+	call get_g				/* call get_g and return in %eax */ 
+	movl %eax, %r15d 		/* move output B from %eax to %r15d */ 
+
+	movl %r12d, %edi 		/* move input image pixel from %r12d to %edi (1st arg for compute_index) */ 
+	call get_a 				/* call get_a and return in %eax */ 
+	movl %eax, %ebx 		/* move alpha from %eax to %ebx */ 
+
+	/* make pixel from new values: make_pixel(new_r, new_g, new_b, a)*/
+	movl %r13d, %edi 		/* move output R from %r13d to %edi (1st arg for make_pixel) */ 
+	movl %r14d, %esi 		/* move output G from %r14d to %esi (2nd arg for make_pixel) */ 
+	movl %r15d, %edx 		/* move output B from %r15d to %edx (3rd arg for make_pixel) */ 
+	movl %ebx, %ecx 		/* move alpha from %ebx to %ecx (4th arg for make_pixel) */ 
+	call make_pixel			/* call make_pixel and return in %eax */ 
+
+	/* epilogue */ 
+	addq $8, %rsp	/* remove alignment */ 
+	popq %rbx 		/* restore callee-saved registers */
+	popq %r15 
+	popq %r14
+	popq %r13
+	popq %r12 
+	popq %rbp 
+
+    ret		/* return pixel in %eax */ 
+
+/* Definition of helper functions to be completed in ms3 */
+	.globl valid_index
+valid_index:
+    ret
+
+	.globl blur_pixel
+blur_pixel:
+    ret
+
+	.globl expand_even_even
+expand_even_even:
+    ret
+
+	.globl expand_even_odd
+expand_even_odd:
+    ret
+
+	.globl expand_odd_even
+expand_odd_even:
+    ret
+
+	.globl expand_odd_odd
+expand_odd_odd:
+    ret
+
+	.globl pa_init
+pa_init:
+    ret
+
+	.globl pa_update
+pa_update:
+    ret
+
+	.globl pa_update_from_img
+pa_update_from_img:
+    ret
+
+	.globl pa_avg_pixel
+pa_avg_pixel:
+    ret
 
 /*
  * Definitions of image transformation functions
@@ -166,10 +287,10 @@ compute_index:
   * C function: void imgproc_squash( struct Image *input_img, struct Image *output_img, int32_t xfac, int32_t yfac )
   * 
   * Parameters: 
-  * 	%rdi - contains 64-bit input Image pointer 
-  * 	%rsi - contains 64-bit output Image pointer 
-  *		%edx - contains 32-bit xfac 
-  *		%ecx - contains 32-bit yfac 
+  * 	%rdi - 64-bit input Image pointer 
+  * 	%rsi - 64-bit output Image pointer 
+  *		%edx - 32-bit xfac 
+  *		%ecx - 32-bit yfac 
   *
   * Register use: 
   * 	%r12 - input Image pointer 
@@ -184,24 +305,22 @@ compute_index:
   *		-24(%rbp) - %r14 (xfac) 
   * 	-32(%rbp) - %r15 (yfac) 
   *		-40(%rbp) - %rbx (current output row index) 
-  * 	-48(%rbp) - from %rsp stack alignment 
+  * 	-48(%rbp) - %rsp stack alignment 
   * 	
   */ 
 	.globl imgproc_squash
 imgproc_squash:
-	/* TODO: implement */
 	/* prologue */ 
 	pushq %rbp 			/* save previous value in %rbp */ 
 	movq %rsp, %rbp 	/* save top of stack from %rsp to %rbp */ 
-	subq $8, %rsp 	/* align %rsp to be a multiple of 16 */
-	pushq %r12		/* will store input Image pointer */
-	pushq %r13 		/* will store output Image pointer */ 
-	pushq %r14		/* will store xfac */ 
-	pushq %r15 		/* will store yfac */ 
-	pushq %rbx 		/* will store current index */ 
-
-	movq %rdi, %r12 	/* move input Image pointer from %rdi to %r12 */ 
-	movq %rsi, %r13 	/* move output Image pointer from %rsi to %r13 */ 
+	pushq %r12			/* will store input image pointer */
+	pushq %r13 			/* will store output image pointer */ 
+	pushq %r14			/* will store xfac */ 
+	pushq %r15 			/* will store yfac */ 
+	pushq %rbx 			/* will store current index */ 
+	subq $8, %rsp 		/* align %rsp to be a multiple of 16 */
+	movq %rdi, %r12 	/* move input image pointer from %rdi to %r12 */ 
+	movq %rsi, %r13 	/* move output image pointer from %rsi to %r13 */ 
 	movl %edx, %r14d	/* move xfac from %edx to %r14d */ 
 	movl %ecx, %r15d 	/* move yfac from %ecx to %r15d */ 
 
@@ -216,7 +335,7 @@ imgproc_squash:
 	idivl %r15d 							/* divide 64-bit height by 32-bit yfac and store quotient in %eax, remainder in %edx*/
 	movl %eax, %edx  						/* move quotient (output image height) from %eax to %edx (3rd arg for img_init) */
 
-	movq %r13, %rdi 						/* move ouput image pointer from r13 to %rdi (1st arg for img_init) */ 
+	movq %r13, %rdi 						/* move ouput image pointer from %r13 to %rdi (1st arg for img_init) */ 
 	call img_init							/* call img_init and return in %eax */ 
 	
 	cmpl $0, %eax		/* compare 0 with return from img_init */ 	
@@ -263,16 +382,16 @@ imgproc_squash:
 	jmp .Lsquash_loop_row 		/* repeat row loop */ 
 
 .Lsquash_done: 
-	/* analogue */ 
+	/* epilogue */ 
 	addq $8, %rsp	/* remove alignment */ 
-	popq %rbx 		/* restore callee-saved registers*/
+	popq %rbx 		/* restore callee-saved registers */
 	popq %r15 
 	popq %r14
 	popq %r13
 	popq %r12 
 	popq %rbp 
 
-	ret
+	ret		
 
 /*
  *  Transform the color component values in each input pixel
@@ -289,10 +408,101 @@ imgproc_squash:
  *  @param output_img pointer to the output Image (in which the
  *                    transformed pixels should be stored)
  */
+
+ /* 
+  * Applies a rotation to the colour component vaues in each input pixel 
+  * C function: void imgproc_color_rot( struct Image *input_img, struct Image *output_img )
+  * 
+  * Parameters: 
+  * 	%rdi - 64-bit input Image pointer 
+  * 	%rsi - 64-bit output Image pointer 
+  *
+  * Register use: 
+  * 	%r12 - input Image pointer 
+  * 	%r13 - output Image pointer 
+  * 	%r14d - current output row index 
+  *		%r15d - current output col index 
+  * 	%ebx - current index 
+  * 
+  * Memory use: 
+  *		-8(%rbp) - %r12 (input Image pointer)
+  * 	-16(%rbp) - %r13 (output Image pointer)
+  * 	-24(%rbp) - %r14d (current output row index) 
+  * 	-32(%rbp) - %r15d (current output col index)
+  * 	-40(%rbp) - %ebx (current index)
+  *		-48(%rbp) - %rsp stack alignment 
+  * 	
+  */ 
+
 	.globl imgproc_color_rot
 imgproc_color_rot:
-	/* TODO: implement */
-	ret
+	/* prologue */ 
+	pushq %rbp 			/* save previous value in %rbp */ 
+	movq %rsp, %rbp 	/* save top of stack from %rsp to %rbp */ 
+	pushq %r12			/* will store input image pointer */
+	pushq %r13 			/* will store output image pointer */ 
+	pushq %r14			/* will store current output row index */ 
+	pushq %r15 			/* will store current output col index */ 
+	pushq %rbx			/* will store current index */ 
+	subq $8, %rsp 		/* align %rsp to be a multiple of 16 */
+	movq %rdi, %r12 	/* move input image pointer from %rdi to %r12 */ 
+	movq %rsi, %r13 	/* move output image pointer from %rsi to %r13 */ 
+
+	/* initializes output image dimensions: img_init(output_img, input_img->width, input_img->height) */ 
+	movq %r13, %rdi								/* move output image pointer from %r13 to %rdi (1st arg for img_init) */ 
+	movl IMAGE_WIDTH_OFFSET(%r12), %esi 		/* dereference pointer to width (32-bit) in %r12 and move to %esi (2nd arg for img_init) */ 
+	movl IMAGE_HEIGHT_OFFSET(%r12), %edx 		/* dereference pointer to height (32-bit) in %r12 and move to %edx (3rd arg for img_init) */ 
+	call img_init								/* call img_init and return in %eax */ 
+
+	cmpl $0, %eax 		/* compare 0 with return from img_init */
+	jne .Lrot_done		/* jump to end if return value != 0 */
+
+	movl $0, %r14d 		/* move 0 to %r14 (row index) */ 
+
+.Lrot_loop_row: 
+	cmpl IMAGE_HEIGHT_OFFSET(%r13), %r14d	/* compare output image height with row index */
+	jge .Lrot_done 							/* jump to end if row index >= output image height */
+
+	movl $0, %r15d 		/* move 0 to %r15d (col index) */ 
+
+.Lrot_loop_col: 
+	cmpl IMAGE_WIDTH_OFFSET(%r13), %r15d 	/* compare output image width with col index */ 
+	jge .Lrot_next_row						/* jump to end if col index >= output image width */ 
+
+	/* find output index: compute_index(input_img, row, col) */ 
+	movq %r12, %rdi			/* move input image pointer from %r12 to %rdi (1st arg for compute_index) */ 
+	movl %r14d, %esi 		/* move row index from %r14d to %esi (2nd arg for compute_index) */ 
+	movl %r15d, %edx 		/* move col index from %r15d to %edx (3rd arg for compute_index) */ 
+	call compute_index 		/* call compute_index and return index in %eax */ 
+	movl %eax, %ebx 		/* move index from %eax to %ebx */ 
+
+	/* get output pixel: rot_colors(input_img, index) */ 
+	movq %r12, %rdi 		/* move input image pointer from %r12 to %rdi (1st arg for compute_index) */ 
+	movl %ebx, %esi 		/* move index from %ebx to %esi */ 
+	call rot_colors 		/* call rot_colors and return new pixel in %eax */ 
+
+	/* assign new pixel to output image pixel */ 
+	movq IMAGE_DATA_OFFSET(%r13), %r8		/* dereference pointer to output image pixel and move from %r13 to %r8 */
+	movl %eax, (%r8, %rbx, 4)				/* move new pixel from %eax to pixel at output image index at %r8 + (%rax * 4) */ 
+
+	incl %r15d 				/* increment col index */
+	jmp .Lrot_loop_col		/* repeat col loop */ 
+
+.Lrot_next_row: 
+	incl %r14d				/* increment row index */ 
+	jmp .Lrot_loop_row		/* repeat row loop */ 
+
+.Lrot_done: 
+	/* epilogue */ 
+	addq $8, %rsp	/* remove alignment */ 
+	popq %rbx 		/* restore callee-saved registers */
+	popq %r15 
+	popq %r14
+	popq %r13
+	popq %r12 
+	popq %rbp 
+
+	ret		
 
 
 /*
