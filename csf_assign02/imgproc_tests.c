@@ -87,7 +87,7 @@ int main( int argc, char **argv ) {
 
   TEST( test_get_rgba ); 
   TEST( test_make_pixel ); 
-  // TEST( test_valid_index ); 
+  TEST( test_valid_index ); 
   TEST( test_compute_index ); 
   // TEST( test_blur_pixel ); 
   TEST( test_rot_colors ); 
