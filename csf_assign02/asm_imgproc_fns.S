@@ -197,10 +197,40 @@ rot_colors:
 
     ret		/* return pixel in %eax */ 
 
-/* Definition of helper functions to be completed in ms3 */
+/* 
+ * Determines if the row and col indices provided are valid in the image
+ * C function: int32_t valid_index( struct Image *img, int32_t row, int32_t col )
+ * 
+ * Parameters: 
+ * 	%rdi - 64-bit Image pointer 
+ * 	%esi - 32-bit row index 
+ *	%edx - 32-bit col index 
+ * 
+ * Returns: 
+ * 	%eax - 32-bit 0 (invalid) or 1 (valid)
+ */ 
 	.globl valid_index
 valid_index:
-    ret
+	cmpl $0, %esi				/* compare row index to 0 */
+	jl .Lvalid_index_false 		/* jump to invalid index if row index < 0 */
+
+	cmpl $0, %edx 				/* compare col index to 0 */
+	jl .Lvalid_index_false 		/* jump to invalid index if col index < 0 */
+
+	movl IMAGE_HEIGHT_OFFSET(%rdi), %eax		/* dereference pointer to height (32-bit) in %rdi and move to %eax */
+	cmpl %eax, %esi 							/* compare row index to image height */
+	jge .Lvalid_index_false						/* jump to invalid index if row index >= image height */ 
+
+	movl IMAGE_WIDTH_OFFSET(%rdi), %eax 		/* dereference pointer to width (32-bit) in %rdi and move to %eax */
+	cmpl %eax, %edx 							/* compare col index to image width */
+	jge .Lvalid_index_false						/* jump to invalid index if col index >= image width */ 
+
+	movl $1, %eax 		/* move 1 to %eax */
+    ret					/* return 1 in %eax */
+
+.Lvalid_index_false: 
+	movl $0, %eax 		/* move 0 to %eax */
+	ret 				/* return 0 in %eax */ 
 
 	.globl blur_pixel
 blur_pixel:
