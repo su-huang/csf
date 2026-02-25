@@ -172,18 +172,20 @@ rot_colors:
 	movl (%r8, %rsi, 4), %r12d 				/* move pixel at input image index from %r8 + (%esi * 4) to %r12d */ 
 
 	/* extract RGB and alpha values: get_b(pixel), get_g(pixel), get_r(pixel), get_a(pixel), */
-	movl %r12d, %edi 		/* move input image pixel from %r12d to %edi (1st arg for compute_index) */ 
+	movl %r12d, %edi 		/* move input image pixel from %r12d to %edi (1st arg for get_b) */ 
 	call get_b 				/* call get_b and return in %eax */ 
 	movl %eax, %r13d 		/* move output R from %eax to %r13d */ 
 
-	movl %r12d, %edi 		/* move input image pixel from %r12d to %edi (1st arg for compute_index) */ 
+	movl %r12d, %edi 		/* move input image pixel from %r12d to %edi (1st arg for get_r) */ 
 	call get_r 				/* call get_r and return in %eax */ 
 	movl %eax, %r14d 		/* move output G from %eax to %r14d */ 
 
-	call get_g				/* call get_g and return in %eax (input image pixel still in %edi) */ 
+	movl %r12d, %edi 		/* move input image pixel from %r12d to %edi (1st arg for get_g) */ 
+	call get_g				/* call get_g and return in %eax */ 
 	movl %eax, %r15d 		/* move output B from %eax to %r15d */ 
 
-	call get_a 				/* call get_a and return in %eax (input image pixel still in %edi) */ 
+	movl %r12d, %edi 		/* move input image pixel from %r12d to %edi (1st arg for get_a) */ 
+	call get_a 				/* call get_a and return in %eax */ 
 	movl %eax, %ebx 		/* move alpha from %eax to %ebx */ 
 
 	/* make pixel from new values: make_pixel(new_r, new_g, new_b, a) */
@@ -673,9 +675,9 @@ pa_avg_pixel:
   * Memory use: 
   *		-8(%rbp) - %r12 (input Image pointer)
   * 	-16(%rbp) - %r13 (output Image pointer)
-  *		-24(%rbp) - %r14 (xfac) 
-  * 	-32(%rbp) - %r15 (yfac) 
-  *		-40(%rbp) - %rbx (current output row index) 
+  *		-24(%rbp) - %r14d (xfac) 
+  * 	-32(%rbp) - %r15d (yfac) 
+  *		-40(%rbp) - %ebx (current output row index) 
   * 	-48(%rbp) - %rsp stack alignment 
   * 	
   */ 
@@ -804,7 +806,6 @@ imgproc_squash:
   *		-48(%rbp) - %rsp stack alignment 
   * 	
   */ 
-
 	.globl imgproc_color_rot
 imgproc_color_rot:
 	/* prologue */ 
@@ -875,7 +876,6 @@ imgproc_color_rot:
 
 	ret		
 
-
 /*
  *  Transform the input image using a blur effect.
  * 
@@ -905,10 +905,107 @@ imgproc_color_rot:
  *                   component averages used to determine the color
  *                   components of the output pixel
  */
+
+/*
+ * Transforms the input image using a blur effect 
+ * C function: void imgproc_blur( struct Image *input_img, struct Image *output_img, int32_t blur_dist )
+ * 
+ * Parameters: 
+ * 	%rdi - 64-bit input Image pointer 
+ * 	%rsi - 64-bit output Image pointer 
+ *	%edx - 32-bit blur dist  
+ *
+ * Register use: 
+ * 	%r12 - input Image pointer 
+ * 	%r13 - output Image pointer 
+ *	%r14d - blur dist 
+ * 	%r15d - current row index 
+ *	%ebx - current col index 
+ * 
+ * Memory use: 
+ *	-8(%rbp) - %r12 (input Image pointer)
+ * 	-16(%rbp) - %r13 (output Image pointer)
+ *	-24(%rbp) - %r14d (blur dist) 
+ * 	-32(%rbp) - %r15d (current row index) 
+ *	-40(%rbp) - %ebx (current col index) 
+ *	-44(%rbp) - stack: blurred pixel 
+ * 	-48(%rbp) - %rsp stack alignment 
+ * 	
+ */ 
 	.globl imgproc_blur
 imgproc_blur:
 	/* TODO: implement */
-	ret
+	/* prologue */ 
+	pushq %rbp 			/* save previous value in %rbp */ 
+	movq %rsp, %rbp 	/* save top of stack from %rsp to %rbp */ 
+	pushq %r12			/* will store input image pointer */
+	pushq %r13 			/* will store output image pointer */ 
+	pushq %r14			/* will store blur dist */ 
+	pushq %r15 			/* will store current row index */ 
+	pushq %rbx			/* will store current col index */ 
+	subq $8, %rsp 		/* align %rsp to -48 */
+	movq %rdi, %r12 	/* move input image pointer from %rdi to %r12 */ 
+	movq %rsi, %r13 	/* move output image pointer from %rsi to %r13 */ 
+	movl %edx, %r14d
+
+	/* initializes output image dimensions: img_init(output_img, input_img->width, input_img->height) */ 
+	movq %r13, %rdi								/* move output image pointer from %r13 to %rdi (1st arg for img_init) */ 
+	movl IMAGE_WIDTH_OFFSET(%r12), %esi 		/* dereference pointer to width (32-bit) in %r12 and move to %esi (2nd arg for img_init) */ 
+	movl IMAGE_HEIGHT_OFFSET(%r12), %edx 		/* dereference pointer to height (32-bit) in %r12 and move to %edx (3rd arg for img_init) */ 
+	call img_init								/* call img_init and return in %eax */ 
+
+	cmpl $0, %eax 					/* compare 0 with return from img_init */
+	jne .Limgproc_blur_done			/* jump to end if return value != 0 */
+
+	movl $0, %r15d 		/* move 0 to %r15d (row index) */ 
+
+.Limgproc_blur_loop_row: 
+	cmpl IMAGE_HEIGHT_OFFSET(%r13), %r15d		/* compare output image height with row index */
+	jge .Limgproc_blur_done						/* jump to end if row index >= image height */
+
+	movl $0, %ebx 	/* move 0 to %ebx (col index) */ 
+
+.Limgproc_blur_loop_col: 
+	cmpl IMAGE_WIDTH_OFFSET(%r13), %ebx 	/* compare output image width with col index */ 
+	jge .Limgproc_blur_next_row				/* jump to end if col index >= output image width */ 
+
+	/* get blurred pixel and index: blur_pixel(input_img, row, col, blur_dist), compute_index(input_img, row, col) */
+	movq %r12, %rdi 		/* move input image pointer from %r12 to %rdi (1st arg for blur_pixel) */ 
+	movl %r15d, %esi 		/* move row index from %r15d to %esi (2nd arg for blur_pixel) */
+	movl %ebx, %edx 		/* move col index from %ebx to %edx (3rd arg for blur_pixel) */
+	movl %r14d, %ecx 		/* move blur dist from %r14d to %ecx (4th arg for blur_pixel) */
+	call blur_pixel 		/* call blur_pixel and return in %eax */
+	movl %eax, -44(%rbp)	/* move blurred pixel from %eax to -44(%rbp) */
+
+	/* get index to add blurred pixel: compute_index(output_img, row, col)*/
+	movq %r13, %rdi 		/* move output image pointer from %r13 to %rdi (1st arg for blur_pixel) */ 
+	movl %r15d, %esi 		/* move row index from %r15d to %esi (2nd arg for blur_pixel) */
+	movl %ebx, %edx 		/* move col index from %ebx to %edx (3rd arg for blur_pixel) */
+	call compute_index		/* call compute_index and return in %eax (arguments align with blur_pixel) */
+
+	/* assign new pixel to output image pixel */ 
+	movq IMAGE_DATA_OFFSET(%r13), %r8		/* dereference pointer to output image pixel and move from %r13 to %r8 */
+	movl -44(%rbp), %r9d					/* move blurred pixel from -44(%rbp) to %r9d (can't move between memory locations directly)*/
+	movl %r9d, (%r8, %rax, 4)				/* move new pixel from %r9d to pixel at output image index at %r8 + (%rax * 4) */ 
+
+	incl %ebx 						/* increment col index */
+	jmp .Limgproc_blur_loop_col		/* repeat col loop */ 
+
+.Limgproc_blur_next_row: 
+	incl %r15d 						/* increment row index */
+	jmp .Limgproc_blur_loop_row		/* repeat row loop */
+
+.Limgproc_blur_done: 
+	/* epilogue */
+	addq $8, %rsp	/* remove alignment */ 
+	popq %rbx 		/* restore callee-saved registers */
+	popq %r15 
+	popq %r14
+	popq %r13
+	popq %r12 
+	popq %rbp 
+
+	ret 
 
 /*
  *  The `expand` transformation doubles the width and height of the image.
