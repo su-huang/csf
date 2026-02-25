@@ -13,11 +13,11 @@
 #define IMAGE_DATA_OFFSET		8
 
 /* Offsets of struct PixelAverager fields */ 
-#define PIXEL_AVERAGER_R_OFFSET			0
-#define PIXEL_AVERAGER_G_OFFSET			4
-#define PIXEL_AVERAGER_B_OFFSET 		8
-#define PIXEL_AVERAGER_A_OFFSET 		12
-#define PIXEL_AVERAGER_COUNT_OFFSET 	16 
+#define PA_R_OFFSET			0
+#define PA_G_OFFSET			4
+#define PA_B_OFFSET 		8
+#define PA_A_OFFSET 		12
+#define PA_COUNT_OFFSET 	16 
 
 /*
  * Gets the R value of the pixel 
@@ -171,7 +171,7 @@ rot_colors:
 	movq IMAGE_DATA_OFFSET(%rdi), %rax		/* dereference pointer to input image pixel and move from %rdi to %rax */
 	movl (%rax, %rsi, 4), %r12d 			/* move pixel at input image index from %rax + (%esi * 4) to %r12d */ 
 
-	/* extract RGB values: get_b(pixel), get_g(pixel), get_r(pixel), get_a(pixel), */
+	/* extract RGB and alpha values: get_b(pixel), get_g(pixel), get_r(pixel), get_a(pixel), */
 	movl %r12d, %edi 		/* move input image pixel from %r12d to %edi (1st arg for compute_index) */ 
 	call get_b 				/* call get_b and return in %eax */ 
 	movl %eax, %r13d 		/* move output R from %eax to %r13d */ 
@@ -186,7 +186,7 @@ rot_colors:
 	call get_a 				/* call get_a and return in %eax (input image pixel still in %edi) */ 
 	movl %eax, %ebx 		/* move alpha from %eax to %ebx */ 
 
-	/* make pixel from new values: make_pixel(new_r, new_g, new_b, a)*/
+	/* make pixel from new values: make_pixel(new_r, new_g, new_b, a) */
 	movl %r13d, %edi 		/* move output R from %r13d to %edi (1st arg for make_pixel) */ 
 	movl %r14d, %esi 		/* move output G from %r14d to %esi (2nd arg for make_pixel) */ 
 	movl %r15d, %edx 		/* move output B from %r15d to %edx (3rd arg for make_pixel) */ 
@@ -269,11 +269,11 @@ expand_odd_odd:
  */ 
 	.globl pa_init
 pa_init:
-	movl $0, PIXEL_AVERAGER_R_OFFSET(%rdi)			/* move 0 to R in PixelAverager */  
-	movl $0, PIXEL_AVERAGER_G_OFFSET(%rdi) 			/* move 0 to G in PixelAverager */  
-	movl $0, PIXEL_AVERAGER_B_OFFSET(%rdi) 			/* move 0 to B in PixelAverager */  
-	movl $0, PIXEL_AVERAGER_A_OFFSET(%rdi) 			/* move 0 to alpha in PixelAverager */  
-	movl $0, PIXEL_AVERAGER_COUNT_OFFSET(%rdi) 		/* move 0 to count in PixelAverager */  
+	movl $0, PA_R_OFFSET(%rdi)			/* move 0 to R in PixelAverager */  
+	movl $0, PA_G_OFFSET(%rdi) 			/* move 0 to G in PixelAverager */  
+	movl $0, PA_B_OFFSET(%rdi) 			/* move 0 to B in PixelAverager */  
+	movl $0, PA_A_OFFSET(%rdi) 			/* move 0 to alpha in PixelAverager */  
+	movl $0, PA_COUNT_OFFSET(%rdi) 		/* move 0 to count in PixelAverager */  
 
     ret
 
@@ -303,23 +303,24 @@ pa_update:
 	movq %rdi, %r12		/* move PixelAverager pointer from %rdi to %r12 */ 
 	movl %esi, %r13d 	/* move pixel from %esi to %r13d */ 
 
+	/* extract and add RGB and alpha values: get_r(pixel), get_g(pixel), get_b(pixel), get_a(pixel) */
 	movl %r13d, %edi 							/* move pixel from %r13d to %edi (1st arg for get_r) */
 	call get_r									/* call get_r and return in %eax */ 
-	addl %eax, PIXEL_AVERAGER_R_OFFSET(%r12)	/* add pixel R value with PixelAverager R value and store in offset %r12 */ 
+	addl %eax, PA_R_OFFSET(%r12)	/* add pixel R value with PixelAverager R value and store in offset %r12 */ 
 
 	movl %r13d, %edi							/* move pixel from %r13d to %edi (1st arg for get_g) */
 	call get_g 									/* call get_g and return in %eax */ 
-	addl %eax, PIXEL_AVERAGER_G_OFFSET(%r12)	/* add pixel G value with PixelAverager G value and store in offset %r12 */ 
+	addl %eax, PA_G_OFFSET(%r12)	/* add pixel G value with PixelAverager G value and store in offset %r12 */ 
 
 	movl %r13d, %edi							/* move pixel from %r13d to %edi (1st arg for get_b) */
 	call get_b									/* call get_b and return in %eax */ 
-	addl %eax, PIXEL_AVERAGER_B_OFFSET(%r12)	/* add pixel G value with PixelAverager G value and store in offset %r12 */ 
+	addl %eax, PA_B_OFFSET(%r12)	/* add pixel G value with PixelAverager G value and store in offset %r12 */ 
 
 	movl %r13d, %edi							/* move pixel from %r13d to %edi (1st arg for get_a) */
 	call get_a									/* call get_a and return in %eax */ 
-	addl %eax, PIXEL_AVERAGER_A_OFFSET(%r12)	/* add pixel alpha value with PixelAverager alpha value and store in offset %r12 */ 
+	addl %eax, PA_A_OFFSET(%r12)	/* add pixel alpha value with PixelAverager alpha value and store in offset %r12 */ 
 
-	incl PIXEL_AVERAGER_COUNT_OFFSET(%r12)		/* increment PixelAverager count */ 
+	incl PA_COUNT_OFFSET(%r12)		/* increment PixelAverager count */ 
 
 	/* epilogue */ 
 	popq %r13 		/* restore callee-saved registers */
@@ -328,13 +329,180 @@ pa_update:
 
     ret
 
+/* 
+ * Adds the RGB and alpha values of the pixel from the image to the running total for PixelAverager struct 
+ * C function: void pa_update_from_img( struct Image *img, int32_t row, int32_t col, struct PixelAverager *pa )
+ * 
+ * Parameters: 
+ * 	%rdi - 64-bit Image pointer 
+ * 	%esi - 32-bit row index 
+ *	%edx - 32-bit col index 
+ * 	%rcx - 64-bit PixelAverager pointer 
+ *
+ * Register use: 
+ * 	%r12 - Image pointer 
+ * 	%r13d - row index 
+ * 	%r14d - col index 
+ * 	%r15 - PixelAverager pointer 
+ * 	%rbx - Image data pointer 
+ * 
+ * Memory use: 
+ *	-8(%rbp) - %r12 (Image pointer)
+ * 	-16(%rbp) - %r13d (row index)
+ * 	-24(%rbp) - %r14d (col index)
+ * 	-32(%rbp) - %r15 (PixelAverager pointer)
+ * 	-40(%rbp) - %rbx (Image data pointer)
+ * 	-48(%rbp) - %rsp stack alignment  
+ */ 
 	.globl pa_update_from_img
 pa_update_from_img:
-    ret
+	/* prologue */ 
+	pushq %rbp 								/* save previous value in %rbp */ 
+	movq %rsp, %rbp 						/* save top of stack from %rsp to %rbp */ 
+	pushq %r12								/* will store image pointer */
+	pushq %r13								/* will store row index */ 
+	pushq %r14 								/* will store col index */
+	pushq %r15 								/* will store PixelAverager pointer */
+	pushq %rbx								/* will store Image data pointer */
+	subq $8, %rsp 							/* align %rsp to be a multiple of 16 */
+	movq %rdi, %r12							/* move image pointer from %rdi to %r12 */ 
+	movl %esi, %r13d 						/* move row index from %esi to %r13d */ 
+	movl %edx, %r14d						/* move col index from %edx to %r14d */
+	movq %rcx, %r15							/* move PixelAverage pointer from %rcx to %r15 */
+	
+	/* checks for valid index: valid_index(img, row, col) */
+	call valid_index						/* call valid_index and return in %eax (parameters already in correct registers) */ 
+	cmpl $0, %eax 							/* compare 0 with return from valid_index */
+	je .Lpa_update_from_img_done 			/* jump to end if return value == 0 (invalid index) */
 
+	/* find pixel index: compute_index(img, row, col) */ 
+	movq %r12, %rdi 		/* move image pointer from %r12 to %rdi (1st arg for compute_index) */ 
+	movl %r13d, %esi 		/* move output row index from %r13d to %esi (2nd arg for compute_index) */  
+	movl %r14d, %edx 		/* move output col index from %r14d to %edx (3rd arg for compute_index) */ 
+	call compute_index		/* call compute_index and return pixel index in %eax */ 
+
+    /* updates PixelAverager from image: pa_update(pa, pixel) */
+	movq %r15, %rdi 						/* move PixelAverager pointer from %r15 to %rdi (1st arg for pa_updpate) */
+	movq IMAGE_DATA_OFFSET(%r12), %rbx 		/* move mage data pointer from %r12 offset to %rbx */
+	movl (%rbx, %rax, 4), %esi 				/* move pixel at image index from %rbx + (%rax * 4) to %esi (2nd arg for pa_update) */ 
+	call pa_update 							/* call pa_update to update PixelAverager pointer */
+
+.Lpa_update_from_img_done: 
+	/* epilogue */
+	addq $8, %rsp	/* remove alignment */ 
+	popq %rbx 		/* restore callee-saved registers */
+	popq %r15 
+	popq %r14 
+	popq %r13 
+	popq %r12 
+	popq %rbp 	
+
+	ret 			
+
+/* 
+ * Computes the average of each accumulation from PixelAverager struct and returns a pixel 
+ * C function: uint32_t pa_avg_pixel( struct PixelAverager *pa, uint32_t default_alpha, uint32_t img_alpha )
+ * 
+ * Parameters: 
+ * 	%rdi - 64-bit PixelAverager pointer 
+ * 	%esi - 32-bit alpha indicator (1 to set a default value, 0 otherwise )
+ *	%edx - 32-bit default alpha value 
+ *
+ * Register use: 
+ * 	%r12 - PixelAverager pointer 
+ * 	%r13d - alpha indicator
+ * 	%r14d - default alpha value 
+ * 	%r15d - count 
+ * 	%ebx - average R
+ * 
+ * Memory use: 
+ *	-8(%rbp) - %r12 (PixelAverager pointer)
+ * 	-16(%rbp) - %r13d (alpha indicator)
+ * 	-24(%rbp) - %r14d (default alpha value)
+ * 	-32(%rbp) - %r15d count
+ * 	-40(%rbp) - %ebx (average R)
+ * 	-44(%rbp) - local: average G 
+ *	-48(%rbp) - local: average B
+ * 	-52(%rbp) - local: average alpha 
+ * 	-64(%rbp) - %rsp stack alignment  
+ */ 
 	.globl pa_avg_pixel
 pa_avg_pixel:
-    ret
+	/* prologue */
+	pushq %rbp 							/* save previous value in %rbp */ 
+	movq %rsp, %rbp 					/* save top of stack from %rsp to %rbp */ 
+	pushq %r12							/* will store PixelAverager pointer */
+	pushq %r13							/* will store alpha indicator */ 
+	pushq %r14 							/* will store default alpha value */
+	pushq %r15 							/* will store count */
+	pushq %rbx 							/* will store average R */
+	subq $24, %rsp 						/* align %rsp to -64 */
+	movq %rdi, %r12						/* move PixelAverager pointer from %rdi to %r12 */ 
+	movl %esi, %r13d 					/* move alpha indicator from %esi to %r13d */ 
+	movl %edx, %r14d					/* move default alpha value from %edx to %r14d */
+	movl PA_COUNT_OFFSET(%r12), %r15d	/* move count from %r12 offset to %r15d */
+
+	cmpl $0, %r15d 				/* compare 0 with count*/
+	je .Lpa_avg_pixel_count0	/* jump to count of 0 if return value == 0 */
+
+	movl PA_R_OFFSET(%r12), %eax	/* move R sum (dividend) from %r12 offset to %eax */
+    movl $0, %edx					/* move 0 to %edx to clear the high bits for 32-bit dividend */  
+    divl %r15d						/* divide R sum in %edx:%eax by count in %r15d and return quotient in %eax */
+    movl %eax, %ebx       			/* move average R from %eax to %ebx */
+
+	movl PA_G_OFFSET(%r12), %eax 	/* move G sum (dividend) from %r12 offset to %eax */
+	movl $0, %edx					/* move 0 to %edx to clear the high bits for 32-bit dividend */  
+	divl %r15d  					/* divide G sum in %edx:%eax by count in %r15d and return quotient in %eax */
+	movl %eax, -44(%rbp) 			/* move average G from %eax to -44(%rbp) */
+
+	movl PA_B_OFFSET(%r12), %eax 	/* move B sum (dividend) from %r12 offset to %eax */
+	movl $0, %edx					/* move 0 to %edx to clear the high bits for 32-bit dividend */  
+	divl %r15d  					/* divide B sum in %edx:%eax by count in %r15d and return quotient in %eax */
+	movl %eax, -48(%rbp) 			/* move average B from %eax to -48(%rbp) */
+
+	cmpl $1, %r13d 						/* compare 1 with alpha indicator */
+	je .Lpa_avg_pixel_default_alpha		/* jump to default alpha if return value == 1 (set default alpha) */
+
+	movl PA_A_OFFSET(%r12), %eax 	/* move alpha sum (dividend) from %r12 offset to %eax */
+	movl $0, %edx					/* move 0 to %edx to clear the high bits for 32-bit dividend */  
+	divl %r15d  					/* divide alpha sum in %edx:%eax by count in %r15d and return quotient in %eax */
+	movl %eax, -52(%rbp) 			/* move average alpha from %eax to -52(%rbp) */
+
+	jmp .Lpa_avg_pixel_make	/* jump to make pixel */
+
+.Lpa_avg_pixel_count0: 
+	movl PA_R_OFFSET(%r12), %ebx 		/* move R from %r12 offset to %ebx */
+	movl PA_G_OFFSET(%r12), %eax 		/* move G from %r12 offset to %eax (can't move between memory locations directly) */
+	movl %eax, -44(%rbp) 				/* move G from %eax to -44(%rbp) */
+	movl PA_B_OFFSET(%r12), %eax		/* move B from %r12 offset to %eax (can't move between memory locations directly) */
+	movl %eax, -48(%rbp) 				/* move B from %eax to -48(%rbp) */
+	movl PA_A_OFFSET(%r12), %eax		/* move alpha from %r12 offset to %eax (can't move between memory locations directly) */
+	movl %eax, -52(%rbp)				/* move alpha from %eax to -52(%rbp) */
+
+	jmp .Lpa_avg_pixel_make		/* jump to make pixel */
+
+.Lpa_avg_pixel_default_alpha: 
+	movl %r14d, -52(%rbp) 		/* move default alpha from %r14d to -52(%rbp) */
+
+.Lpa_avg_pixel_make: 
+	/* make pixel from average values: make_pixel(r, g, b, a) */
+	movl %ebx, %edi 			/* move output R from %ebx to %edi (1st arg for make_pixel) */ 
+	movl -44(%rbp), %esi 		/* move output G from -44(%rbp) to %esi (2nd arg for make_pixel) */ 
+	movl -48(%rbp), %edx 		/* move output B from -48(%rbp) to %edx (3rd arg for make_pixel) */ 
+	movl -52(%rbp), %ecx 		/* move alpha from -52(%rbp) to %ecx (4th arg for make_pixel) */ 
+	call make_pixel				/* call make_pixel and return in %eax */ 
+
+.Lpa_avg_pixel_done: 
+	/* epilogue */
+	addq $24, %rsp	/* remove alignment */ 
+	popq %rbx		/* restore callee-saved registers */
+	popq %r15
+	popq %r14
+	popq %r13
+	popq %r12 
+	popq %rbp 
+
+    ret		/* return pixel in %eax */
 
 /*
  * Definitions of image transformation functions
