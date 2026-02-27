@@ -7,7 +7,8 @@ C Implementation Notes
 - Wrote modularized unit tests for each helper function, making sure to verify edge cases 
 
 Assembly Implementation Notes 
-- Only implemented necessary helper functions for ms2 methods (imgproc_squash and imgproc_color_rot)
+- Implemented all helper functions identical to those written in C
+- Didn't write any new helpfer function tests because the C tests cover the functionality of all assembly functions 
 - Followed x86 register use conventions for stack registers, argument registers, etc. 
 - Header comments indicating callee-saved registers and memory use 
 - Used local labels for control flow 
