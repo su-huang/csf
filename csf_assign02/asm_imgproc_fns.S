@@ -388,19 +388,11 @@ expand_even_even:
 	movq %rdi, %r12			/* move image pointer from %rdi to %r12 */ 
 
 	/* get value of index of desired pixel: compute_index(img, row / 2, col / 2)*/
-	movl %esi, %r8d 		/* move row index from %esi to %r8d */
-	movl %edx, %r9d 		/* move col index from %edx to %r9d */
+	shrl $1, %esi           /* right-shift row to divide by 2 */
+	movl %esi, %r8d       	/* move new row index from %eax to %r13d */
 
-	movl %r8d, %eax			/* move row index (dividend) from %r8d to %eax */
-	movl $0, %edx			/* move 0 to %edx to clear the high bits for 32-bit dividend */  
-	movl $2, %r10d 			/* move 2 to %r10d (divl requires register) */
-	divl %r10d				/* divide row index in %edx:%eax by %r10d and return quotient in %eax */
-	movl %eax, %r8d			/* move new row index from %eax to %r8d */
-
-	movl %r9d, %eax			/* move col index (dividend) from %r9d to %eax */
-	movl $0, %edx			/* move 0 to %edx to clear the high bits for 32-bit dividend */   
-	divl %r10d				/* divide col index in %edx:%eax by %r10d and return quotient in %eax */
-	movl %eax, %r9d			/* move new col index from %eax to %r9d */
+    shrl $1, %edx			/* right-shift col to divide by 2 */
+	movl %edx, %r9d       	/* move new col index from %edx to %r14d */
 
 	movq %r12, %rdi 		/* move image pointer from %r12 to %rdi (1st arg for compute_index) */
 	movl %r8d, %esi 		/* move row index from %r8d to %esi (2nd arg for compute_index) */
@@ -413,7 +405,7 @@ expand_even_even:
 
 	/* epilogue */
 	addq $8, %rsp 		/* align %rsp to be a multiple of 16 */
-	popq %r15 			/* restore callee-saved registers */
+	popq %r12 			/* restore callee-saved registers */
 	popq %rbp 
 
     ret		/* return pixel in %eax */
@@ -457,19 +449,11 @@ expand_even_odd:
 	movq %rdi, %r12			/* move image pointer from %rdi to %r12 */ 
 	leaq -52(%rbp), %r15	/* %r15 points to PixelAverager struct */
 
-	movl %esi, %r8d 		/* move row index from %esi to %r8d */ 
-	movl %edx, %r9d			/* move col index from %edx to %r9d */
+	shrl $1, %esi           /* right-shift row to divide by 2 */
+	movl %esi, %r13d       	/* move new row index from %eax to %r13d */
 
-	movl %r8d, %eax			/* move row index (dividend) from %r8d to %eax */
-    movl $0, %edx			/* move 0 to %edx to clear the high bits for 32-bit dividend */  
-	movl $2, %r8d			/* move 2 to %r8d (divl requires register) */
-    divl %r8d				/* divide row index in %edx:%eax by %r8d and return quotient in %eax */
-    movl %eax, %r13d       	/* move new row index from %eax to %r13d */
-
-	movl %r9d, %eax			/* move col index (dividend) from %r9d to %eax */
-    movl $0, %edx			/* move 0 to %edx to clear the high bits for 32-bit dividend */  
-    divl %r8d				/* divide col index in %edx:%eax by %r8d and return quotient in %eax */
-    movl %eax, %r14d       	/* move new col index from %eax to %r14d */
+    shrl $1, %edx			/* right-shift col to divide by 2 */
+	movl %edx, %r14d       	/* move new col index from %edx to %r14d */
 
 	/* initialize PixelAverager struct: pa_init(pa) */
 	movq %r15, %rdi 		/* move PixelAverager pointer from %rbx to %rdi (1st arg for pa_init) */ 
@@ -544,19 +528,11 @@ expand_odd_even:
 	movq %rdi, %r12			/* move image pointer from %rdi to %r12 */ 
 	leaq -52(%rbp), %r15	/* %r15 points to PixelAverager struct */
 
-	movl %esi, %r8d 		/* move row index from %esi to %r8d */ 
-	movl %edx, %r9d			/* move col index from %edx to %r9d */
+	shrl $1, %esi           /* right-shift row to divide by 2 */
+	movl %esi, %r13d       	/* move new row index from %eax to %r13d */
 
-	movl %r8d, %eax			/* move row index (dividend) from %r8d to %eax */
-    movl $0, %edx			/* move 0 to %edx to clear the high bits for 32-bit dividend */  
-	movl $2, %r8d			/* move 2 to %r8d (divl requires register) */
-    divl %r8d				/* divide row index in %edx:%eax by %r8d and return quotient in %eax */
-    movl %eax, %r13d       	/* move new row index from %eax to %r13d */
-
-	movl %r9d, %eax			/* move col index (dividend) from %r9d to %eax */
-    movl $0, %edx			/* move 0 to %edx to clear the high bits for 32-bit dividend */  
-    divl %r8d				/* divide col index in %edx:%eax by %r8d and return quotient in %eax */
-    movl %eax, %r14d       	/* move new col index from %eax to %r14d */
+    shrl $1, %edx			/* right-shift col to divide by 2 */
+	movl %edx, %r14d       	/* move new col index from %edx to %r14d */
 
 	/* initialize PixelAverager struct: pa_init(pa) */
 	movq %r15, %rdi 		/* move PixelAverager pointer from %rbx to %rdi (1st arg for pa_init) */ 
@@ -631,19 +607,11 @@ expand_odd_odd:
 	movq %rdi, %r12			/* move image pointer from %rdi to %r12 */ 
 	leaq -52(%rbp), %r15	/* %r15 points to PixelAverager struct */
 
-	movl %esi, %r8d 		/* move row index from %esi to %r8d */ 
-	movl %edx, %r9d			/* move col index from %edx to %r9d */
+	shrl $1, %esi           /* right-shift row to divide by 2 */
+	movl %esi, %r13d       	/* move new row index from %eax to %r13d */
 
-	movl %r8d, %eax			/* move row index (dividend) from %r8d to %eax */
-    movl $0, %edx			/* move 0 to %edx to clear the high bits for 32-bit dividend */  
-	movl $2, %r8d			/* move 2 to %r8d (divl requires register) */
-    divl %r8d				/* divide row index in %edx:%eax by %r8d and return quotient in %eax */
-    movl %eax, %r13d       	/* move new row index from %eax to %r13d */
-
-	movl %r9d, %eax			/* move col index (dividend) from %r9d to %eax */
-    movl $0, %edx			/* move 0 to %edx to clear the high bits for 32-bit dividend */  
-    divl %r8d				/* divide col index in %edx:%eax by %r8d and return quotient in %eax */
-    movl %eax, %r14d       	/* move new col index from %eax to %r14d */
+    shrl $1, %edx			/* right-shift col to divide by 2 */
+	movl %edx, %r14d       	/* move new col index from %edx to %r14d */
 
 	/* initialize PixelAverager struct: pa_init(pa) */
 	movq %r15, %rdi 		/* move PixelAverager pointer from %rbx to %rdi (1st arg for pa_init) */ 
@@ -975,32 +943,32 @@ pa_avg_pixel:
  *  @param yfac factor to downsize the image vertically; guaranteed to be positive
  */
 
- /* 
-  * Modifies output image to shrink image horizontally and vertically 
-  * C function: void imgproc_squash( struct Image *input_img, struct Image *output_img, int32_t xfac, int32_t yfac )
-  * 
-  * Parameters: 
-  * 	%rdi - 64-bit input Image pointer 
-  * 	%rsi - 64-bit output Image pointer 
-  *		%edx - 32-bit xfac 
-  *		%ecx - 32-bit yfac 
-  *
-  * Register use: 
-  * 	%r12 - input Image pointer 
-  * 	%r13 - output Image pointer 
-  *		%r14d - xfac 
-  * 	%r15d - yfac 
-  *		%ebx - current output row index 	
-  * 
-  * Memory use: 
-  *		-8(%rbp) - %r12 (input Image pointer)
-  * 	-16(%rbp) - %r13 (output Image pointer)
-  *		-24(%rbp) - %r14d (xfac) 
-  * 	-32(%rbp) - %r15d (yfac) 
-  *		-40(%rbp) - %ebx (current output row index) 
-  * 	-48(%rbp) - %rsp stack alignment 
-  * 	
-  */ 
+/* 
+ * Modifies output image to shrink image horizontally and vertically 
+ * C function: void imgproc_squash( struct Image *input_img, struct Image *output_img, int32_t xfac, int32_t yfac )
+ * 
+ * Parameters: 
+ * 	%rdi - 64-bit input Image pointer 
+ * 	%rsi - 64-bit output Image pointer 
+ *	%edx - 32-bit xfac 
+ *	%ecx - 32-bit yfac 
+ *
+ * Register use: 
+ * 	%r12 - input Image pointer 
+ * 	%r13 - output Image pointer 
+ *	%r14d - xfac 
+ * 	%r15d - yfac 
+ *	%ebx - current output row index 	
+ * 
+ * Memory use: 
+ *	-8(%rbp) - %r12 (input Image pointer)
+ * 	-16(%rbp) - %r13 (output Image pointer)
+ *	-24(%rbp) - %r14d (xfac) 
+ * 	-32(%rbp) - %r15d (yfac) 
+ *	-40(%rbp) - %ebx (current output row index) 
+ * 	-48(%rbp) - %rsp stack alignment 
+ * 	
+ */ 
 	.globl imgproc_squash
 imgproc_squash:
 	/* prologue */ 
@@ -1102,30 +1070,30 @@ imgproc_squash:
  *                    transformed pixels should be stored)
  */
 
- /* 
-  * Applies a rotation to the colour component vaues in each input pixel 
-  * C function: void imgproc_color_rot( struct Image *input_img, struct Image *output_img )
-  * 
-  * Parameters: 
-  * 	%rdi - 64-bit input Image pointer 
-  * 	%rsi - 64-bit output Image pointer 
-  *
-  * Register use: 
-  * 	%r12 - input Image pointer 
-  * 	%r13 - output Image pointer 
-  * 	%r14d - current output row index 
-  *		%r15d - current output col index 
-  * 	%ebx - current index 
-  * 
-  * Memory use: 
-  *		-8(%rbp) - %r12 (input Image pointer)
-  * 	-16(%rbp) - %r13 (output Image pointer)
-  * 	-24(%rbp) - %r14d (current output row index) 
-  * 	-32(%rbp) - %r15d (current output col index)
-  * 	-40(%rbp) - %ebx (current index)
-  *		-48(%rbp) - %rsp stack alignment 
-  * 	
-  */ 
+/* 
+ * Applies a rotation to the colour component vaues in each input pixel 
+ * C function: void imgproc_color_rot( struct Image *input_img, struct Image *output_img )
+ * 
+ * Parameters: 
+ * 	%rdi - 64-bit input Image pointer 
+ * 	%rsi - 64-bit output Image pointer 
+ *
+ * Register use: 
+ * 	%r12 - input Image pointer 
+ * 	%r13 - output Image pointer 
+ * 	%r14d - current output row index 
+ *	%r15d - current output col index 
+ * 	%ebx - current index 
+ * 
+ * Memory use: 
+ *	-8(%rbp) - %r12 (input Image pointer)
+ * 	-16(%rbp) - %r13 (output Image pointer)
+ * 	-24(%rbp) - %r14d (current output row index) 
+ * 	-32(%rbp) - %r15d (current output col index)
+ * 	-40(%rbp) - %ebx (current index)
+ *	-48(%rbp) - %rsp stack alignment 
+ * 	
+ */ 
 	.globl imgproc_color_rot
 imgproc_color_rot:
 	/* prologue */ 
@@ -1175,7 +1143,7 @@ imgproc_color_rot:
 
 	/* assign new pixel to output image pixel */ 
 	movq IMAGE_DATA_OFFSET(%r13), %r8		/* dereference pointer to output image pixel and move from %r13 to %r8 */
-	movl %eax, (%r8, %rbx, 4)				/* move new pixel from %eax to pixel at output image index at %r8 + (%rax * 4) */ 
+	movl %eax, (%r8, %rbx, 4)				/* move new pixel from %eax to pixel at output image index at %r8 + (%rbx * 4) */ 
 
 	incl %r15d 				/* increment col index */
 	jmp .Lrot_loop_col		/* repeat col loop */ 
@@ -1254,7 +1222,6 @@ imgproc_color_rot:
  */ 
 	.globl imgproc_blur
 imgproc_blur:
-	/* TODO: implement */
 	/* prologue */ 
 	pushq %rbp 			/* save previous value in %rbp */ 
 	movq %rsp, %rbp 	/* save top of stack from %rsp to %rbp */ 
@@ -1368,11 +1335,139 @@ imgproc_blur:
  *  @param output_img pointer to the output Image (in which the
  *                    transformed pixels should be stored)
  */
+
+/* Doubles the width and height of the image by taking average pixels 
+ * C function: void imgproc_expand( struct Image *input_img, struct Image *output_img)
+ * 
+ * Parameters: 
+ *	%rdi - 64-bit input Image pointer 
+ * 	%rsi - 64-bit output Image pointer 
+ * 
+ * Register use: 
+ * 	%r12 - input Image pointer 
+ * 	%r13 - output Image pointer 
+ *	%r14d - current row index 
+ *	%r15d - current col index 
+ *	%ebx - current pixel 
+ * 
+ * Memory use: 
+ *	-8(%rbp) - %r12 (input Image pointer)
+ * 	-16(%rbp) - %r13 (output Image pointer)
+ *	-24(%rbp) - %r14d (current row index)
+ *	-32(%rbp) - %r15d (current col index)
+ *	-40(%rbp) - %ebx (current pixel)
+ * 	-48(%rbp) - %rsp stack alignment 
+ */
 	.globl imgproc_expand
 imgproc_expand:
-	/* TODO: implement */
-	ret
+	/* prologue */
+	pushq %rbp 			/* save previous value in %rbp */ 
+	movq %rsp, %rbp 	/* save top of stack from %rsp to %rbp */ 
+	pushq %r12			/* will store input image pointer */
+	pushq %r13 			/* will store output image pointer */ 
+	pushq %r14			/* will store current row index */ 
+	pushq %r15 			/* will store current col index */ 
+	pushq %rbx			/* will store current pixel */ 
+	subq $8, %rsp 		/* align %rsp to be a multiple of 16 */
+	movq %rdi, %r12 	/* move input image pointer from %rdi to %r12 */ 
+	movq %rsi, %r13 	/* move output image pointer from %rsi to %r13 */ 
 
-/*
-vim:ft=gas:
-*/
+	/* initializes output image dimensions: img_init(output_img, input_img->width * 2, input_img->height * 2) */ 
+	movq %r13, %rdi								/* move output image pointer from %r13 to %rdi (1st arg for img_init) */ 
+	movl IMAGE_WIDTH_OFFSET(%r12), %esi 		/* dereference pointer to width (32-bit) in %r12 and move to %esi (2nd arg for img_init) */ 
+	movl IMAGE_HEIGHT_OFFSET(%r12), %edx 		/* dereference pointer to height (32-bit) in %r12 and move to %edx (3rd arg for img_init) */ 
+	shll $1, %esi								/* left-shift width to multiply by 2 (2nd arg for img_init) */
+	shll $1, %edx								/* right-shift width to multiply by 2 (3rd arg for img_init) */
+	call img_init								/* call img_init and return in %eax */ 
+
+	cmpl $0, %eax 					/* compare 0 with return from img_init */
+	jne .Limgproc_expand_done		/* jump to end if return value != 0 */
+
+	movl $0, %r14d 		/* move 0 to %r15d (row index) */ 
+
+.Limgproc_expand_loop_row: 
+	cmpl IMAGE_HEIGHT_OFFSET(%r13), %r14d			/* compare output image height with row index */
+	jge .Limgproc_expand_done						/* jump to end if row index >= image height */
+
+	movl $0, %r15d 	/* move 0 to %r15d (col index) */ 
+
+.Limgproc_expand_loop_col: 
+	cmpl IMAGE_WIDTH_OFFSET(%r13), %r15d 	/* compare output image width with col index */ 
+	jge .Limgproc_expand_next_row			/* jump to end if col index >= output image width */ 
+
+	testl $1, %r14d						/* check if last bit of row index is 1, meaning odd */					
+	jz .Limgproc_expand_check_even_row 	/* jump if ZF = 1, meaning the last bit isn't 1, meaning the row is even */
+
+	testl $1, %r15d 				/* check if last bit of col index is 1, meaning odd */
+	jz .Limgproc_expand_odd_even	/* jump if ZF = 1, meaning the last bit isn't 1, meaning the col is even and the row is odd from above */
+
+	/* calls helper function for odd row and odd col: expand_odd_odd(input_img, row, col) */
+	movq %r12, %rdi 		/* move input image pointer from %r12 to %rdi (1st arg for expand_odd_odd) */
+	movl %r14d, %esi 		/* move current row index from %r14d to %esi (2nd arg for expand_odd_odd) */
+	movl %r15d, %edx 		/* move current col index from %r15d to %edx (3rd arg for expand_odd_odd) */
+	call expand_odd_odd		/* call expand_odd_odd and return in %eax */
+
+	jmp .Limgproc_expand_set_pixel		/* jump to set pixel in output image */
+
+.Limgproc_expand_check_even_row: 
+	testl $1, %r15d 				/* check if last bit of col index is 1, meaning odd */
+	jz .Limgproc_expand_even_even	/* jump if ZF = 1, meaning the last bit isn't 1, meaning the col is even and the row is even from above */
+
+	/* calls helper function for even row and odd col: expand_even_odd(input_img, row, col) */
+	movq %r12, %rdi 		/* move input image pointer from %r12 to %rdi (1st arg for expand_even_odd) */
+	movl %r14d, %esi 		/* move current row index from %r14d to %esi (2nd arg for expand_even_odd) */
+	movl %r15d, %edx 		/* move current col index from %r15d to %edx (3rd arg for expand_even_odd) */
+	call expand_even_odd	/* call expand_even_odd and return in %eax */
+
+	jmp .Limgproc_expand_set_pixel		/* jump to set pixel in output image */
+
+.Limgproc_expand_odd_even: 
+	/* calls helper function for odd row and even col: expand_odd_even(input_img, row, col) */
+	movq %r12, %rdi 		/* move input image pointer from %r12 to %rdi (1st arg for expand_odd_even) */
+	movl %r14d, %esi 		/* move current row index from %r14d to %esi (2nd arg for expand_odd_even) */
+	movl %r15d, %edx 		/* move current col index from %r15d to %edx (3rd arg for expand_odd_even) */
+	call expand_odd_even	/* call expand_odd_even and return in %eax */
+
+	jmp .Limgproc_expand_set_pixel		/* jump to set pixel in output image */
+
+
+.Limgproc_expand_even_even: 
+	/* calls helpder function for even row and even col: expand_even_even(input_img, row, col) */
+	movq %r12, %rdi 		/* move input image pointer from %r12 to %rdi (1st arg for expand_even_even) */
+	movl %r14d, %esi 		/* move current row index from %r14d to %esi (2nd arg for expand_even_even) */
+	movl %r15d, %edx 		/* move current col index from %r15d to %edx (3rd arg for expand_even_even) */
+	call expand_even_even	/* call expand_even_even and return in %eax */
+
+	jmp .Limgproc_expand_set_pixel		/* jump to set pixel in output image */
+
+.Limgproc_expand_set_pixel: 
+	movl %eax, %ebx
+
+	/* get index of pixel to set in output mage: compute_index(output_img, row, col) */
+	movq %r13, %rdi			/* move output image pointer from %r13 to %rdi (1st arg for compute_index) */
+	movl %r14d, %esi		/* move current row index from %r14d to %esi (2nd arg for compute_index) */
+	movl %r15d, %edx		/* move current col index from %r15d to %edx (3rd arg for compute_index) */
+	call compute_index 		/* call compute_index and return pixel index in %eax */
+
+	/* assign new pixel to output image pixel */ 
+	movq IMAGE_DATA_OFFSET(%r13), %r8		/* dereference pointer to output image pixel and move from %r13 to %r8 */
+	movl %ebx, (%r8, %rax, 4)				/* move new pixel from %ebx to pixel at output image index at %r8 + (%rax * 4) */ 
+
+	incl %r15d						/* increment col index */
+	jmp .Limgproc_expand_loop_col 	/* repeat col loop */
+
+.Limgproc_expand_next_row: 
+	incl %r14d 						/* increment row index */
+	jmp .Limgproc_expand_loop_row	/* repeat row loop */
+
+.Limgproc_expand_done: 
+	/* epilogue */
+	addq $8, %rsp	/* remove alignment */ 
+	popq %rbx 		/* restore callee-saved registers */
+	popq %r15 
+	popq %r14
+	popq %r13
+	popq %r12 
+	popq %rbp 
+
+	ret 
