@@ -360,9 +360,8 @@ blur_pixel:
 	ret 	/* return blurred pixel in %eax */
 
 /* 	
- *	Assigns output pixel the input pixel at row i/2 and col j/2 for even row and col indices 
- * 
- *	C function: uint32_t expand_even_even (struct Image *img, uint32_t row, uint32_t col )
+ * Assigns output pixel the input pixel at row i/2 and col j/2 for even row and col indices 
+ * C function: uint32_t expand_even_even (struct Image *img, uint32_t row, uint32_t col )
  *
  * Parameters: 
  *	%rdi - 64-bit Image pointer  
@@ -370,7 +369,66 @@ blur_pixel:
  *	%edx - 32-bit col index 
  * 
  * Returns: 
- *	%eax - 32-bit average pixel 
+ *	%eax - 32-bit output pixel 
+ *
+ * Register use: 
+ * 	%r12 - Image pointer 
+ * 
+ * Memory use: 
+ *	-8(%rbp) - %r12 (Image pointer)
+ * 	-16(%rbp) - %rsp stack alignment 
+ */  
+	.globl expand_even_even
+expand_even_even:
+	/* prologue */
+	pushq %rbp 				/* save previous value in %rbp */ 
+	movq %rsp, %rbp 		/* save top of stack from %rsp to %rbp */ 
+	pushq %r12				/* will store image pointer */
+	subq $8, %rsp 			/* align %rsp to -64 */
+	movq %rdi, %r12			/* move image pointer from %rdi to %r12 */ 
+
+	/* get value of index of desired pixel: compute_index(img, row / 2, col / 2)*/
+	movl %esi, %r8d 		/* move row index from %esi to %r8d */
+	movl %edx, %r9d 		/* move col index from %edx to %r9d */
+
+	movl %r8d, %eax			/* move row index (dividend) from %r8d to %eax */
+	movl $0, %edx			/* move 0 to %edx to clear the high bits for 32-bit dividend */  
+	movl $2, %r10d 			/* move 2 to %r10d (divl requires register) */
+	divl %r10d				/* divide row index in %edx:%eax by %r10d and return quotient in %eax */
+	movl %eax, %r8d			/* move new row index from %eax to %r8d */
+
+	movl %r9d, %eax			/* move col index (dividend) from %r9d to %eax */
+	movl $0, %edx			/* move 0 to %edx to clear the high bits for 32-bit dividend */   
+	divl %r10d				/* divide col index in %edx:%eax by %r10d and return quotient in %eax */
+	movl %eax, %r9d			/* move new col index from %eax to %r9d */
+
+	movq %r12, %rdi 		/* move image pointer from %r12 to %rdi (1st arg for compute_index) */
+	movl %r8d, %esi 		/* move row index from %r8d to %esi (2nd arg for compute_index) */
+	movl %r9d, %edx 		/* move col index from %r9d to %edx (3rd arg for compute_index) */
+	call compute_index		/* call compute_index and return index in %eax */
+
+	movq IMAGE_DATA_OFFSET(%rdi), %r8		/* dereference pointer to input image pixel and move from %rdi to %r8 */
+	movl (%r8, %rax, 4), %r8d 				/* move pixel at input image index from %r8 + (%rax * 4) to %r8d */ 
+	movl %r8d, %eax							/* move pixel from %r8d to %eax for return*/
+
+	/* epilogue */
+	addq $8, %rsp 		/* align %rsp to be a multiple of 16 */
+	popq %r15 			/* restore callee-saved registers */
+	popq %rbp 
+
+    ret		/* return pixel in %eax */
+
+/* 	
+ * Assigns output pixel the average of the input pixels at row i/2 and col j/2 and j/2 + 1 for even rol and odd col indices 
+ * C function: uint32_t expand_even_odd (struct Image *img, uint32_t row, uint32_t col )
+ *
+ * Parameters: 
+ *	%rdi - 64-bit Image pointer  
+ * 	%esi - 32-bit row index 
+ *	%edx - 32-bit col index 
+ * 
+ * Returns: 
+ *	%eax - 32-bit output pixel 
  *
  * Register use: 
  * 	%r12 - Image pointer 
@@ -386,8 +444,95 @@ blur_pixel:
  *	-52(%rbp) - stack: PixelAverager struct 
  * 	-64(%rbp) - %rsp stack alignment 
  */  
-	.globl expand_even_even
-expand_even_even:
+	.globl expand_even_odd
+expand_even_odd:
+	/* prologue */
+	pushq %rbp 				/* save previous value in %rbp */ 
+	movq %rsp, %rbp 		/* save top of stack from %rsp to %rbp */ 
+	pushq %r12				/* will store image pointer */
+	pushq %r13				/* will store row index */ 
+	pushq %r14 				/* will store col index */
+	pushq %r15 				/* will store PixelAverager pointer */
+	subq $32, %rsp 			/* align %rsp to -64 */
+	movq %rdi, %r12			/* move image pointer from %rdi to %r12 */ 
+	leaq -52(%rbp), %r15	/* %r15 points to PixelAverager struct */
+
+	movl %esi, %r8d 		/* move row index from %esi to %r8d */ 
+	movl %edx, %r9d			/* move col index from %edx to %r9d */
+
+	movl %r8d, %eax			/* move row index (dividend) from %r8d to %eax */
+    movl $0, %edx			/* move 0 to %edx to clear the high bits for 32-bit dividend */  
+	movl $2, %r8d			/* move 2 to %r8d (divl requires register) */
+    divl %r8d				/* divide row index in %edx:%eax by %r8d and return quotient in %eax */
+    movl %eax, %r13d       	/* move new row index from %eax to %r13d */
+
+	movl %r9d, %eax			/* move col index (dividend) from %r9d to %eax */
+    movl $0, %edx			/* move 0 to %edx to clear the high bits for 32-bit dividend */  
+    divl %r8d				/* divide col index in %edx:%eax by %r8d and return quotient in %eax */
+    movl %eax, %r14d       	/* move new col index from %eax to %r14d */
+
+	/* initialize PixelAverager struct: pa_init(pa) */
+	movq %r15, %rdi 		/* move PixelAverager pointer from %rbx to %rdi (1st arg for pa_init) */ 
+	call pa_init			/* call pa_init */ 
+
+	/* aggregate 2 vertical pixels: pa_update_from_img(img, new_row, new_col, pa), pa_update_from_img(img, new_row, new_col + 1, pa) */
+	movq %r12, %rdi 			/* move image pointer from %r12 to %rdi (1st arg for pa_update_from_img) */
+	movl %r13d, %esi 			/* move row index from %r13d to %esi (2nd arg for pa_update_from_img) */
+	movl %r14d, %edx 			/* move col index from %r14d to %edx (3rd arg for pa_update_from_img) */
+	movq %r15, %rcx 			/* move PixelAverager pointer from %r15 to %rcx (4th arg for pa_update_from_img) */
+	call pa_update_from_img 	/* call pa_update_from_img to average PixelAverager */
+
+	movq %r12, %rdi 			/* move image pointer from %r12 to %rdi (1st arg for pa_update_from_img) */
+	movl %r13d, %esi  			/* move row index from %r13d to %esi (2nd arg for pa_update_from_img) */
+	movl %r14d, %edx 			/* move col index from %r14d to %edx (3rd arg for pa_update_from_img) */
+	incl %edx					/* increment col index (3rd arg for pa_update_from_img) */
+	movq %r15, %rcx 			/* move PixelAverager pointer from %r15 to %rcx (4th arg for pa_update_from_img) */
+	call pa_update_from_img 	/* call pa_update_from_img to average PixelAverager */
+	
+	/* average 2 vertical pixels including alpha: pa_avg_pixel(pa, 0, 0) */
+	movq %r15, %rdi 		/* move PixelAverager pointer form %r15 to %rdi (1st arg for pa_avg_pixel) */
+	movl $0, %esi 			/* move 0 to %esi (2nd arg for pa_avg_pixel, indicates we use the average alpha value) */
+	movl $0, %edx 			/* move 0 to %edx (3rd arg for pa_avg_pixel, value won't be use) */
+	call pa_avg_pixel		/* call pa_avg_pixel and return averaged pixel in %eax*/
+
+	/* epilogue */
+	addq $32, %rsp 		/* remove alignment */ 
+	popq %r15 			/* restore callee-saved registers */
+	popq %r14
+	popq %r13
+	popq %r12 
+	popq %rbp 
+
+    ret		/* return pixel in %eax */
+
+/* 	
+ * Assigns output pixel the average of the input pixels at row i/2 and i/2 + 1 and col j/2 for odd rol and even col indices 
+ * C function: uint32_t expand_odd_even (struct Image *img, int32_t row, int32_t col )
+ *
+ * Parameters: 
+ *	%rdi - 64-bit Image pointer  
+ * 	%esi - 32-bit row index 
+ *	%edx - 32-bit col index 
+ * 
+ * Returns: 
+ *	%eax - 32-bit output pixel 
+ *
+ * Register use: 
+ * 	%r12 - Image pointer 
+ * 	%r13d - row index
+ *	%r14d - col index 
+ * 	%r15 - PixelAverager pointer  
+ * 
+ * Memory use: 
+ *	-8(%rbp) - %r12 (Image pointer)
+ * 	-16(%rbp) - %r13d (row index)
+ * 	-24(%rbp) - %r14d (col index)
+ *	-32(%rbp) - %r15 (PixelAverager pointer)
+ *	-52(%rbp) - stack: PixelAverager struct 
+ * 	-64(%rbp) - %rsp stack alignment 
+ */  
+	.globl expand_odd_even
+expand_odd_even:
 	/* prologue */
 	pushq %rbp 				/* save previous value in %rbp */ 
 	movq %rsp, %rbp 		/* save top of stack from %rsp to %rbp */ 
@@ -427,6 +572,7 @@ expand_even_even:
 	movq %r12, %rdi 			/* move image pointer from %r12 to %rdi (1st arg for pa_update_from_img) */
 	movl %r13d, %esi  			/* move row index from %r13d to %esi (2nd arg for pa_update_from_img) */
 	movl %r14d, %edx 			/* move col index from %r14d to %edx (3rd arg for pa_update_from_img) */
+	incl %esi					/* increment row index (3rd arg for pa_update_from_img) */
 	movq %r15, %rcx 			/* move PixelAverager pointer from %r15 to %rcx (4th arg for pa_update_from_img) */
 	call pa_update_from_img 	/* call pa_update_from_img to average PixelAverager */
 	
@@ -446,17 +592,108 @@ expand_even_even:
 
     ret		/* return pixel in %eax */
 
-	.globl expand_even_odd
-expand_even_odd:
-    ret
-
-	.globl expand_odd_even
-expand_odd_even:
-    ret
-
+/* 	
+ * Assigns output pixel the average of the input pixels at row i/2  and i/2 + 1 and col j/2 and j/2 + 1 for odd rol and col indices 
+ * C function: uint32_t expand_odd_odd (struct Image *img, int32_t row, int32_t col )
+ *
+ * Parameters: 
+ *	%rdi - 64-bit Image pointer  
+ * 	%esi - 32-bit row index 
+ *	%edx - 32-bit col index 
+ * 
+ * Returns: 
+ *	%eax - 32-bit output pixel 
+ *
+ * Register use: 
+ * 	%r12 - Image pointer 
+ * 	%r13d - row index
+ *	%r14d - col index 
+ * 	%r15 - PixelAverager pointer  
+ * 
+ * Memory use: 
+ *	-8(%rbp) - %r12 (Image pointer)
+ * 	-16(%rbp) - %r13d (row index)
+ * 	-24(%rbp) - %r14d (col index)
+ *	-32(%rbp) - %r15 (PixelAverager pointer)
+ *	-52(%rbp) - stack: PixelAverager struct 
+ * 	-64(%rbp) - %rsp stack alignment 
+ */
 	.globl expand_odd_odd
 expand_odd_odd:
-    ret
+    /* prologue */
+	pushq %rbp 				/* save previous value in %rbp */ 
+	movq %rsp, %rbp 		/* save top of stack from %rsp to %rbp */ 
+	pushq %r12				/* will store image pointer */
+	pushq %r13				/* will store row index */ 
+	pushq %r14 				/* will store col index */
+	pushq %r15 				/* will store PixelAverager pointer */
+	subq $32, %rsp 			/* align %rsp to -64 */
+	movq %rdi, %r12			/* move image pointer from %rdi to %r12 */ 
+	leaq -52(%rbp), %r15	/* %r15 points to PixelAverager struct */
+
+	movl %esi, %r8d 		/* move row index from %esi to %r8d */ 
+	movl %edx, %r9d			/* move col index from %edx to %r9d */
+
+	movl %r8d, %eax			/* move row index (dividend) from %r8d to %eax */
+    movl $0, %edx			/* move 0 to %edx to clear the high bits for 32-bit dividend */  
+	movl $2, %r8d			/* move 2 to %r8d (divl requires register) */
+    divl %r8d				/* divide row index in %edx:%eax by %r8d and return quotient in %eax */
+    movl %eax, %r13d       	/* move new row index from %eax to %r13d */
+
+	movl %r9d, %eax			/* move col index (dividend) from %r9d to %eax */
+    movl $0, %edx			/* move 0 to %edx to clear the high bits for 32-bit dividend */  
+    divl %r8d				/* divide col index in %edx:%eax by %r8d and return quotient in %eax */
+    movl %eax, %r14d       	/* move new col index from %eax to %r14d */
+
+	/* initialize PixelAverager struct: pa_init(pa) */
+	movq %r15, %rdi 		/* move PixelAverager pointer from %rbx to %rdi (1st arg for pa_init) */ 
+	call pa_init			/* call pa_init */ 
+
+	/* aggregate 2x2 square of pixels: pa_update_from_img(img, new_row, new_col, pa), pa_update_from_img(img, new_row + 1, new_col, pa)
+									   pa_update_from_img(img, new_row, new_col + 1, pa), pa_update_from_img(img, new_row + 1, new_col + 1, pa) */
+	movq %r12, %rdi 			/* move image pointer from %r12 to %rdi (1st arg for pa_update_from_img) */
+	movl %r13d, %esi 			/* move row index from %r13d to %esi (2nd arg for pa_update_from_img) */
+	movl %r14d, %edx 			/* move col index from %r14d to %edx (3rd arg for pa_update_from_img) */
+	movq %r15, %rcx 			/* move PixelAverager pointer from %r15 to %rcx (4th arg for pa_update_from_img) */
+	call pa_update_from_img 	/* call pa_update_from_img to average PixelAverager */
+
+	movq %r12, %rdi 			/* move image pointer from %r12 to %rdi (1st arg for pa_update_from_img) */
+	movl %r13d, %esi  			/* move row index from %r13d to %esi (2nd arg for pa_update_from_img) */
+	movl %r14d, %edx 			/* move col index from %r14d to %edx (3rd arg for pa_update_from_img) */
+	incl %esi					/* increment row index (3rd arg for pa_update_from_img) */
+	movq %r15, %rcx 			/* move PixelAverager pointer from %r15 to %rcx (4th arg for pa_update_from_img) */
+	call pa_update_from_img 	/* call pa_update_from_img to average PixelAverager */
+
+	movq %r12, %rdi 			/* move image pointer from %r12 to %rdi (1st arg for pa_update_from_img) */
+	movl %r13d, %esi  			/* move row index from %r13d to %esi (2nd arg for pa_update_from_img) */
+	movl %r14d, %edx 			/* move col index from %r14d to %edx (3rd arg for pa_update_from_img) */
+	incl %edx					/* increment col index (3rd arg for pa_update_from_img) */
+	movq %r15, %rcx 			/* move PixelAverager pointer from %r15 to %rcx (4th arg for pa_update_from_img) */
+	call pa_update_from_img 	/* call pa_update_from_img to average PixelAverager */
+
+	movq %r12, %rdi 			/* move image pointer from %r12 to %rdi (1st arg for pa_update_from_img) */
+	movl %r13d, %esi  			/* move row index from %r13d to %esi (2nd arg for pa_update_from_img) */
+	movl %r14d, %edx 			/* move col index from %r14d to %edx (3rd arg for pa_update_from_img) */
+	incl %esi					/* increment row index (3rd arg for pa_update_from_img) */
+	incl %edx					/* increment col index (3rd arg for pa_update_from_img) */
+	movq %r15, %rcx 			/* move PixelAverager pointer from %r15 to %rcx (4th arg for pa_update_from_img) */
+	call pa_update_from_img 	/* call pa_update_from_img to average PixelAverager */
+
+	/* average 2x2 square of pixels including alpha: pa_avg_pixel(pa, 0, 0) */
+	movq %r15, %rdi 		/* move PixelAverager pointer form %r15 to %rdi (1st arg for pa_avg_pixel) */
+	movl $0, %esi 			/* move 0 to %esi (2nd arg for pa_avg_pixel, indicates we use the average alpha value) */
+	movl $0, %edx 			/* move 0 to %edx (3rd arg for pa_avg_pixel, value won't be use) */
+	call pa_avg_pixel		/* call pa_avg_pixel and return averaged pixel in %eax*/
+
+	/* epilogue */
+	addq $32, %rsp 		/* remove alignment */ 
+	popq %r15 			/* restore callee-saved registers */
+	popq %r14
+	popq %r13
+	popq %r12 
+	popq %rbp 
+
+    ret		/* return pixel in %eax */
 
 /* 
  * Sets all colour accumulations and pixel count to zero for PixelAverager struct 
