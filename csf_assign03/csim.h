@@ -47,6 +47,12 @@ bool check_params(int argc, char* argv[], Config& config);
 
 bool is_power_of_two(uint32_t n);
 
+uint32_t get_bits(uint32_t n); 
+
+uint32_t get_index(const Config& config, uint32_t address); 
+
+uint32_t get_tag(const Config& config, uint32_t address); 
+
 void run_simulation(Cache& cache);
 
 void access(Cache& cache, char type, uint32_t address);
