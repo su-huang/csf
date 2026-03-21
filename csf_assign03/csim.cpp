@@ -1,7 +1,30 @@
 #include <iostream>
-#include <string>
-#include <cmath>
+#include <string> 
 #include "csim.h"
+
+Cache::Cache(Config my_config) : config(my_config), current_ts(0) {
+    stats.total_loads = 0;
+    stats.total_stores = 0;
+    stats.load_hits = 0;
+    stats.load_misses = 0;
+    stats.store_hits = 0;
+    stats.store_misses = 0;
+    stats.total_cycles = 0;
+
+    sets.resize(config.num_sets); 
+
+    for (size_t i = 0; i < config.num_sets; i++) {
+        sets[i].slots.resize(config.num_blocks); 
+
+        for (size_t j = 0; j < config.num_blocks; j++) {
+            sets[i].slots[j].tag = 0; 
+            sets[i].slots[j].valid = false; 
+            sets[i].slots[j].dirty = false; 
+            sets[i].slots[j].load_ts = 0; 
+            sets[i].slots[j].access_ts = 0; 
+        }
+    }
+}
 
 bool check_params(int argc, char* argv[], Config& config) {
     if (argc != 7) {
@@ -92,7 +115,15 @@ uint32_t get_tag(const Config& config, uint32_t address) {
     return address >> (offset + index);
 }
 
-void run_simulation(Cache& cache) {}
+void run_simulation(Cache& cache) {
+    char type; 
+    uint32_t address; 
+    int garbage; 
+
+    while (std::cin >> type >> std::hex >> address >> std::dec >> garbage) {
+        access(cache, type, address); 
+    }
+}
 
 void access(Cache& cache, char type, uint32_t address) {
     cache.current_ts++; 
@@ -202,4 +233,12 @@ int find_evict_index(const Set& set, bool lru) {
     return ans_index; 
 }
 
-void print_stats(const Stats& stats) {}
+void print_stats(const Stats& stats) {
+    std::cout << "Total loads: " << stats.total_loads << std::endl;
+    std::cout << "Total stores: " << stats.total_stores << std::endl;
+    std::cout << "Load hits: " << stats.load_hits << std::endl;
+    std::cout << "Load misses: " << stats.load_misses << std::endl;
+    std::cout << "Store hits: " << stats.store_hits << std::endl;
+    std::cout << "Store misses: " << stats.store_misses << std::endl;
+    std::cout << "Total cycles: " << stats.total_cycles << std::endl;
+}
