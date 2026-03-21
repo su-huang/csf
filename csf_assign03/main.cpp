@@ -6,10 +6,18 @@
  */
 
 #include <iostream>
+#include "csim.h"
 
 int main( int argc, char **argv ) {
-  // TODO: implement
-  std::cout << "csim executable built" << std::endl; 
+	Config config; 
+	if (!check_params(argc, argv, config)) {
+        return 1;
+    }
 
-  return 0;
+	Cache cache(config); 
+	
+	run_simulation(cache); 
+	print_stats(cache.stats); 
+
+	return 0;
 }
