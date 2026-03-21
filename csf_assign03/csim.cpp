@@ -90,7 +90,12 @@ void run_simulation(Cache& cache) {}
 
 void access(Cache& cache, char type, uint32_t address) {}
 
-int find_hit(const Set& set, uint32_t tag) {}
+int find_hit(const Set& set, uint32_t tag) {
+    for (size_t i = 0; i < set.slots.size(); i++) {
+        if (set.slots[i].valid && set.slots[i].tag == tag) return static_cast<int>(i); 
+    }
+    return -1; 
+}
 
 int find_evict_index(const Set& set, bool lru) {}
 
