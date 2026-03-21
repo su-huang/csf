@@ -43,4 +43,18 @@ struct Cache {
     uint32_t current_ts = 0; 
 };
 
+bool check_params(int argc, char* argv[], Config& config);
+
+bool is_power_of_two(uint32_t n);
+
+void run_simulation(Cache& cache);
+
+void access(Cache& cache, char type, uint32_t address);
+
+int find_hit(const Set& set, uint32_t tag);
+
+int find_evict_index(const Set& set, bool lru);
+
+void print_stats(const Stats& stats);
+
 #endif
