@@ -26,8 +26,8 @@ struct Stats {
 
 struct Slot {
     uint32_t tag; 
-    bool valid; 
-    bool dirty; 
+    bool valid;             // cache slot contains meaninful data 
+    bool dirty;             // cache slot contains newer data than memory 
     uint32_t load_ts; 
     uint32_t access_ts; 
 }; 
