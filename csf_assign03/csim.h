@@ -2,7 +2,8 @@
 #define CSIM_H
 
 #include <stdint.h>
-#include <vector> 
+#include <vector>
+#include <string>
 
 struct Config {
     uint32_t num_sets;      // positive power-of-2
@@ -34,5 +35,12 @@ struct Slot {
 struct Set {
     std::vector<Slot> slots; 
 }; 
+
+struct Cache {
+    Config config;
+    Stats stats;
+    std::vector<Set> sets;
+    uint32_t current_ts = 0; 
+};
 
 #endif
