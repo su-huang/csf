@@ -15,13 +15,13 @@ struct Config {
 }; 
 
 struct Stats {
-    uint32_t total_loads = 0; 
-    uint32_t total_stores = 0; 
-    uint32_t load_hits = 0; 
-    uint32_t load_misses = 0; 
-    uint32_t store_hits = 0; 
-    uint32_t store_misses = 0; 
-    uint64_t total_cycles = 0; 
+    uint32_t total_loads; 
+    uint32_t total_stores; 
+    uint32_t load_hits; 
+    uint32_t load_misses; 
+    uint32_t store_hits; 
+    uint32_t store_misses; 
+    uint64_t total_cycles; 
 }; 
 
 struct Slot {
@@ -41,6 +41,8 @@ struct Cache {
     Stats stats;
     std::vector<Set> sets;
     uint32_t current_ts = 0; 
+
+    Cache(Config my_config); 
 };
 
 bool check_params(int argc, char* argv[], Config& config);
