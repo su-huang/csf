@@ -32,17 +32,21 @@ bool check_params(int argc, char* argv[], Config& config) {
     }
 
     std::string write_alloc = argv[4]; 
-    if (write_alloc == "write-allocate") config.write_allocate = true; 
-    else if (write_alloc == "no-write-allocate") config.write_allocate = false; 
-    else {
+    if (write_alloc == "write-allocate") {
+        config.write_allocate = true; 
+    } else if (write_alloc == "no-write-allocate") {
+        config.write_allocate = false; 
+    } else {
         std::cerr << "Error: Expected 'write-allocate' or 'no-write-allocate'" << std::endl; 
         return false; 
     }
 
     std::string write_through = argv[5]; 
-    if (write_through == "write-through") config.write_through = true; 
-    else if (write_through == "write-back") config.write_through = false; 
-    else {
+    if (write_through == "write-through") {
+        config.write_through = true; 
+    } else if (write_through == "write-back") {
+        config.write_through = false; 
+    } else {
         std::cerr << "Error: Expected 'write-through' or 'write-back'" << std::endl; 
         return false; 
     }
@@ -53,9 +57,11 @@ bool check_params(int argc, char* argv[], Config& config) {
     }
 
     std::string evict_type = argv[6]; 
-    if (evict_type == "lru") config.lru = true; 
-    else if (evict_type == "fifo") config.lru = false;
-    else {
+    if (evict_type == "lru") {
+        config.lru = true; 
+    } else if (evict_type == "fifo") {
+        config.lru = false;
+    } else {
         std::cerr << "Error: Expected 'lru' or 'fifo'" << std::endl; 
         return false; 
     }
@@ -88,7 +94,91 @@ uint32_t get_tag(const Config& config, uint32_t address) {
 
 void run_simulation(Cache& cache) {}
 
-void access(Cache& cache, char type, uint32_t address) {}
+void access(Cache& cache, char type, uint32_t address) {
+    cache.current_ts++; 
+    uint32_t index = get_index(cache.config, address); 
+    uint32_t tag = get_tag(cache.config, address); 
+
+    bool store = (type == 's'); 
+    if (store) {
+        cache.stats.total_stores++; 
+    } else {
+        cache.stats.total_loads++; 
+    } 
+
+    int hit_index = find_hit(cache.sets[index], tag); 
+    cache.stats.total_cycles += 1;
+
+    if (hit_index != -1) {
+        cache.sets[index].slots[hit_index].access_ts = cache.current_ts;
+
+        if (store) {
+            cache.stats.store_hits++; 
+            if (cache.config.write_through) {
+                cache.stats.total_cycles += 100;
+            } else {
+                cache.sets[index].slots[hit_index].dirty = true; 
+            } 
+        } else {
+            cache.stats.load_hits++; 
+        }
+    } else {
+        // miss 
+        if (store) {
+            cache.stats.store_misses++;
+        } else {
+            cache.stats.load_misses++; 
+        }
+
+        // write block to cache from memory 
+        if (!store || cache.config.write_allocate) {
+            cache.stats.total_cycles += 100 * (cache.config.num_bytes / 4); 
+
+            // find a slot 
+            int slot_index = -1; 
+            for (size_t i = 0; i < cache.sets[index].slots.size(); i++) {
+                if (!cache.sets[index].slots[i].valid) {
+                    slot_index = static_cast<int>(i); 
+                    break; 
+                }
+            }
+
+            // need to evict a slot if set full 
+            if (slot_index == -1) {
+                slot_index = find_evict_index(cache.sets[index], cache.config.lru);
+
+                // write-back: dirty block must be written back to memory 
+                if (!cache.config.write_through && cache.sets[index].slots[slot_index].dirty) {
+                    cache.stats.total_cycles += 100 * (cache.config.num_bytes / 4);
+                }
+            }
+
+            // update slot 
+            Slot& new_slot = cache.sets[index].slots[slot_index];
+            new_slot.valid = true;
+            new_slot.tag = tag;
+            new_slot.load_ts = cache.current_ts;   
+            new_slot.access_ts = cache.current_ts; 
+
+            if (store) {
+                if (cache.config.write_through) {
+                    // write to memory immediately so cache slot and memory are synced 
+                    cache.stats.total_cycles += 100;
+                    new_slot.dirty = false; 
+                } else {
+                    // don't write to memory so cache slot is ahead of memory 
+                    new_slot.dirty = true; 
+                }
+            } else {
+                // load from memory so cache slot and memory are synced 
+                new_slot.dirty = false; 
+            }
+        } else {
+            // store and no-write-allocate: don't change cache, just write to memory 
+            cache.stats.total_cycles += 100; 
+        }
+    }
+}
 
 int find_hit(const Set& set, uint32_t tag) {
     for (size_t i = 0; i < set.slots.size(); i++) {
@@ -97,6 +187,19 @@ int find_hit(const Set& set, uint32_t tag) {
     return -1; 
 }
 
-int find_evict_index(const Set& set, bool lru) {}
+int find_evict_index(const Set& set, bool lru) {
+    int ans_index = 0; 
+    uint32_t min_ts = lru ? set.slots[0].access_ts : set.slots[0].load_ts; 
+
+    for (size_t i = 1; i < set.slots.size(); i++) {
+        uint32_t curr_ts = lru ? set.slots[i].access_ts : set.slots[i].load_ts; 
+        if (curr_ts < min_ts) {
+            ans_index = static_cast<int>(i); 
+            min_ts = curr_ts; 
+        }
+    }
+
+    return ans_index; 
+}
 
 void print_stats(const Stats& stats) {}
