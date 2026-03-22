@@ -52,7 +52,7 @@ struct Cache {
     Config config;
     Stats stats;
     std::vector<Set> sets;
-    uint32_t current_ts = 0; 
+    uint32_t current_ts = 0;    // global timestamp 
 
     //! Constructor to initialize the cache based on user-defined configurations 
     //! @param my_config configuration parameters set to match user input 
@@ -60,6 +60,7 @@ struct Cache {
 };
 
 //! Validates command line arguments and assigns the config struct accordingly 
+//! Prints error message to std::cerr
 //! @param argc number of command line arguments
 //! @param argv array of command line argument strings
 //! @param config reference to the config struct
