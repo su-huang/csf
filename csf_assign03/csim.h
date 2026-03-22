@@ -1,3 +1,10 @@
+/*
+ * Header for cache simulation and helper functions 
+ * CSF Assignment 3
+ * Su Huang 
+ * shuan148@jh.edu
+ */
+
 #ifndef CSIM_H
 #define CSIM_H
 
