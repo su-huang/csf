@@ -8,8 +8,13 @@
 #include <iostream>
 #include "csim.h"
 
-int main( int argc, char **argv ) {
+//! Handles command-line arguments and simulation lifecycle
+//! @param argc number of command line arguments
+//! @param argv array of command line argument strings
+int main(int argc, char **argv) {
 	Config config; 
+
+	// validate parameters (errors printed in check_params())
 	if (!check_params(argc, argv, config)) {
         return 1;
     }
