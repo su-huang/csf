@@ -6,6 +6,8 @@
  */
 
 #include <iostream>
+#include <iomanip>
+#include <fstream>
 #include <string> 
 #include "csim.h"
 
@@ -299,4 +301,50 @@ void print_stats(const Stats& stats) {
     std::cout << "Store hits: " << stats.store_hits << std::endl;
     std::cout << "Store misses: " << stats.store_misses << std::endl;
     std::cout << "Total cycles: " << stats.total_cycles << std::endl;
+}
+
+//! Appends simulation results and parameters to a CSV file
+//! @param stats reference to the stats struct
+//! @param config reference to the config struct
+//! @param trace_file name of the trace file used
+//! @param filename name of the CSV file to append to
+void append_stats_csv(const Stats& stats, const Config& config, const std::string& trace_file, const std::string& filename) {
+    std::ifstream check(filename);
+    bool write_header = !check.good();
+    check.close();
+
+    std::ofstream file(filename, std::ios::app);
+    if (!file.is_open()) {
+        std::cerr << "Error: could not open file " << filename << std::endl;
+        return;
+    }
+
+    if (write_header) {
+        file << "trace_file,num_sets,num_blocks,num_bytes,write_allocate,write_through,eviction,"
+             << "total_loads,total_stores,load_hits,load_misses,store_hits,store_misses,total_cycles,"
+             << "hit_rate,total_cache_size_bytes" << std::endl;
+    }
+
+    double hit_rate = (double)(stats.load_hits + stats.store_hits) /
+                      (stats.total_loads + stats.total_stores);
+    uint32_t total_size = config.num_sets * config.num_blocks * config.num_bytes;
+
+    file << trace_file << ","
+         << config.num_sets << ","
+         << config.num_blocks << ","
+         << config.num_bytes << ","
+         << (config.write_allocate ? "write-allocate" : "no-write-allocate") << ","
+         << (config.write_through ? "write-through" : "write-back") << ","
+         << (config.lru ? "lru" : "fifo") << ","
+         << stats.total_loads << ","
+         << stats.total_stores << ","
+         << stats.load_hits << ","
+         << stats.load_misses << ","
+         << stats.store_hits << ","
+         << stats.store_misses << ","
+         << stats.total_cycles << ","
+         << std::fixed << std::setprecision(4) << hit_rate << ","
+         << total_size << std::endl;
+
+    file.close();
 }
