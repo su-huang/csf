@@ -115,4 +115,11 @@ int find_evict_index(const Set& set, bool lru);
 //! @param stats reference to the stats struct 
 void print_stats(const Stats& stats);
 
+//! Appends simulation results and parameters to a CSV file
+//! @param stats reference to the stats struct
+//! @param config reference to the config struct
+//! @param trace_file name of the trace file used
+//! @param filename name of the CSV file to append to
+void append_stats_csv(const Stats& stats, const Config& config, const std::string& trace_file, const std::string& filename = "results.csv"); 
+
 #endif
