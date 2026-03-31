@@ -23,6 +23,8 @@ int main(int argc, char **argv) {
 	
 	run_simulation(cache); 
 	print_stats(cache.stats); 
+	// std::string trace_file = (argc > 7) ? argv[7] : "unknown";
+	// append_stats_csv(cache.stats, cache.config, trace_file, "results.csv");
 
 	return 0;
 }
