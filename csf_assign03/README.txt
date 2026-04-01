@@ -116,3 +116,4 @@ Best overall configuration: 256 sets, 4-way, 16B blocks, write-allocate, write-b
 - LRU eviction: consistently outperforms FIFO across both traces
 
 This configuration achieves 9,344,483 cycles on gcc.trace and 9,009,593 cycles on swim.trace, with hit rates of 97.6% and 96.1% respectively.
+Graphs demonstrating the results can be found here: https://github.com/su-huang/csf/blob/main/csf_assign03/experiments/cache_results.png 
