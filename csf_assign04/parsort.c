@@ -57,6 +57,78 @@ void fatal(const char *msg) {
   exit(1);
 }
 
+// child data type 
+typedef struct {
+  int created;    // 1 if fork succeeded, 0 otherwise
+  pid_t pid;      // pid of child 
+  int waited;     // 1 if waitpid has been called
+  int exit_code;  // exit code of child 
+  int exited;     // 1 if child exited normally 
+} Child;
+
+// pre-declare merge_sort 
+void merge_sort(int64_t *arr, size_t begin, size_t end, size_t threshold);
+
+// forks a portion of the array and returns its child struct 
+Child quicksort_subproc(int64_t *arr, size_t begin, size_t end, size_t threshold) { 
+  Child c = {0}; 
+ 
+  pid_t child_pid = fork();
+  if (child_pid == 0) {
+    // executing in the child
+    merge_sort(arr, begin, end, threshold);
+    exit(0);
+  } else if (child_pid < 0) {
+    // fork failed
+    fprintf(stderr, "error: fork failed\n");
+    c.created = 0;
+  } 
+  
+  // in parent
+  c.created = 1;
+  c.pid = child_pid;
+  return c;
+}
+
+// waits for a child process to finish and stores the result in its child struct 
+void quicksort_wait(Child *c) {
+  if (!c->created) {
+    // child wasn't created 
+    return;
+  }
+ 
+  int rc, wstatus;
+  rc = waitpid(c->pid, &wstatus, 0);
+  c->waited = 1;
+ 
+  if (rc < 0) {
+    // waitpid failed
+    fprintf(stderr, "error: waitpid failed\n");
+    c->exited = 0;
+    return;
+  }
+ 
+  if (!WIFEXITED(wstatus)) {
+    // child did not exit normally
+    fprintf(stderr, "error: child did not exit normally\n");
+    c->exited = 0;
+    return;
+  }
+ 
+  c->exited = 1;
+  c->exit_code = WEXITSTATUS(wstatus);
+}
+
+// returns 1 if the child was created, waited on, exited normally, exited with code 0
+// otherwise returns 0 
+int quicksort_check_success(const Child *c) {
+  if (!c->created) return 0;        // child wasn't created 
+  if (!c->waited) return 0;         // waitpid wasn't called 
+  if (!c->exited) return 0;         // child didn't exit normally 
+  if (c->exit_code != 0) return 0;  // child exited with a non-zero exit code
+  return 1;
+}
+
 void merge_sort(int64_t *arr, size_t begin, size_t end, size_t threshold) {
   assert(end >= begin);
   size_t size = end - begin;
@@ -70,9 +142,21 @@ void merge_sort(int64_t *arr, size_t begin, size_t end, size_t threshold) {
 
   size_t mid = begin + size/2;
 
-  // TODO: parallelize the recursive sorting
-  merge_sort(arr, begin, mid, threshold);
-  merge_sort(arr, mid, end, threshold);
+  // begins child processes for each recursive call
+  Child left, right;
+  left  = quicksort_subproc(arr, begin, mid, threshold);
+  right = quicksort_subproc(arr, mid,   end, threshold);
+ 
+  // waits for both children unconditionally to guarantee no zombies
+  quicksort_wait(&left);
+  quicksort_wait(&right);
+ 
+  // checks if both children were successful 
+  int left_success  = quicksort_check_success(&left);
+  int right_success = quicksort_check_success(&right);
+
+  if (!left_success || !right_success)
+    fatal("a child process failed during sorting");
 
   // allocate temp array now, so we can avoid unnecessary work
   // if the malloc fails
@@ -107,7 +191,7 @@ int main(int argc, char **argv) {
   size_t threshold = (size_t) strtoul(argv[2], &end, 10);
   if (end != argv[2] + strlen(argv[2])) {
     // report an error (threshold value is invalid)
-    fprintf(stderr, "error: invalid threshold value");
+    fprintf(stderr, "error: invalid threshold value\n");
     return 1;
   }
 
@@ -130,7 +214,7 @@ int main(int argc, char **argv) {
   // verify valid byte size 
   size_t file_size_in_bytes = (size_t) statbuf.st_size;
   if (file_size_in_bytes == 0 || file_size_in_bytes % sizeof(int64_t) != 0) {
-    fprintf(stderr, "error: invalid file size");
+    fprintf(stderr, "error: invalid file size\n");
     close(fd);
     return 1;
   }
