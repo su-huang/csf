@@ -1,3 +1,10 @@
+/*
+ * C implementations of parallel quicksort 
+ * CSF Assignment 4 
+ * Su Huang 
+ * shuan148@jh.edu
+ */
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
