@@ -1,6 +1,8 @@
 #include <string>
 #include <unordered_map>
 #include <cassert>
+#include <memory> 
+#include <vector> 
 #include "util.h"
 #include "model.h"
 #include "except.h"
@@ -83,6 +85,35 @@ const std::unordered_map<std::string, OrderStatus> s_str_to_order_status(
 // of messages (in support of the Wire::encode and Wire::decode
 // functions) would be a good idea.
 
+// helper function to encode an order into a string 
+const std::string order_to_str(const Order &order) {
+  // order format: order id,order status,item list 
+  if (order.get_num_items() == 0) {
+      throw InvalidMessage("cannot encoding order with no items");
+  }
+
+  std::string s = std::to_string(order.get_id()) + ","; 
+  s += Wire::order_status_to_str(order.get_status()) + ","; 
+  
+  // item list format: order id:item id:item status:description string:integer quantity; 
+  for (int i = 0; i < order.get_num_items(); i++) {
+    if (i != 0) {
+      s += ";"; 
+    }
+
+    auto item = order.at(i); 
+    std::string item_list = std::to_string(item->get_order_id()) + ":"; 
+    item_list += std::to_string(item->get_id()) + ":"; 
+    item_list += Wire::item_status_to_str(item->get_status()) + ":"; 
+    item_list += item->get_desc() + ":"; 
+    item_list += std::to_string(item->get_qty()); 
+
+    s += item_list; 
+  }
+
+  return s; 
+}
+
 
 } // end of anonymous namespace for helper functions
 
@@ -130,6 +161,35 @@ OrderStatus str_to_order_status(const std::string &s) {
 
 void encode(const Message &msg, std::string &s) {
   // TODO: implement
+  s = message_type_to_str(msg.get_type());
+
+  if (msg.has_client_mode()) {
+    s += "|" + client_mode_to_str(msg.get_client_mode()); 
+  } 
+  
+  if (msg.has_str()) {
+    s += "|" + msg.get_str(); 
+  }
+
+  if (msg.has_order()) {
+    s += "|" + order_to_str(*msg.get_order()); 
+  }
+
+  if (msg.has_order_id()) {
+    s += "|" + std::to_string(msg.get_order_id()); 
+  }
+
+  if (msg.has_order_status()) {
+    s += "|" + Wire::order_status_to_str(msg.get_order_status()); 
+  }
+
+  if (msg.has_item_id()) {
+    s += "|" + std::to_string(msg.get_item_id()); 
+  }
+
+  if (msg.has_item_status()) {
+    s += "|" + Wire::item_status_to_str(msg.get_item_status()); 
+  }
 }
 
 void decode(const std::string &s, Message &msg) {
