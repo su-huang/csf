@@ -3,6 +3,10 @@
 #include <cassert>
 #include <memory> 
 #include <vector> 
+#include <iostream> 
+#include <sstream> 
+#include <algorithm>
+#include <cctype> 
 #include "util.h"
 #include "model.h"
 #include "except.h"
@@ -80,21 +84,17 @@ const std::unordered_map<std::string, OrderStatus> s_str_to_order_status(
   s_str_to_order_status_vec.end()
 );
 
-// TODO: add private helper functions.
-// Suggestion: functions to help encode and decode components
-// of messages (in support of the Wire::encode and Wire::decode
-// functions) would be a good idea.
-
-// helper function to encode an order into a string 
+// helper function to encode order 
 const std::string order_to_str(const Order &order) {
-  // order format: order id,order status,item list 
   if (order.get_num_items() == 0) {
-      throw InvalidMessage("cannot encoding order with no items");
+      throw InvalidMessage("order has no items");
   }
 
+  // order format: order id,order status,item list 
   std::string s = std::to_string(order.get_id()) + ","; 
   s += Wire::order_status_to_str(order.get_status()) + ","; 
   
+  // convert each item in the item list to str 
   // item list format: order id:item id:item status:description string:integer quantity; 
   for (int i = 0; i < order.get_num_items(); i++) {
     if (i != 0) {
@@ -114,6 +114,198 @@ const std::string order_to_str(const Order &order) {
   return s; 
 }
 
+// helper function to check if string is int 
+bool is_int(const std::string s) {
+  return !s.empty() && std::all_of(s.begin(), s.end(), ::isdigit);
+}
+
+// helper function to check no element in vec is empty 
+bool no_empty_str(const std::vector<std::string>& vec) {
+  for (size_t i = 0; i < vec.size(); i++) {
+    if (vec[i].empty()) {
+      throw InvalidMessage("expected field is empty"); 
+    }
+  }
+  return true; 
+}
+
+// helper function to split string into vector with a given char separator
+std::vector<std::string> str_to_vec(const std::string s, const char c) {
+  std::stringstream ss(s); 
+  std::string token; 
+  std::vector<std::string> vec; 
+  while (std::getline(ss, token, c)) {
+    vec.push_back(token); 
+  }
+
+  if (vec.empty() || !no_empty_str(vec)) {
+    throw InvalidMessage("expected field is empty"); 
+  }
+
+  return vec; 
+}
+
+// helper function to decode item 
+std::shared_ptr<Item> decode_item(std::string s, int order_id) {
+  // split item into vector separated by ':'
+  auto item = str_to_vec(s, ':'); 
+
+  // item: [order id, item id, item status, description string, integer quantity]
+  if (item.size() != 5) {
+    throw InvalidMessage("item has incorrect number of fields"); 
+  }
+
+  // order id 
+  // check item's order id matches actual order id 
+  if (!is_int(item[0]) || std::stoi(item[0]) != order_id || std::stoi(item[0]) == 0) {
+    throw InvalidMessage("invalid order id"); 
+  }
+  
+  // item id 
+  if (!is_int(item[1]) || std::stoi(item[1]) == 0) {
+    throw InvalidMessage("invalid item id"); 
+  }
+  int item_id = std::stoi(item[1]); 
+
+  // item status 
+  ItemStatus item_status = Wire::str_to_item_status(item[2]); 
+  if (item_status == ItemStatus::INVALID) {
+    throw InvalidMessage("invalid item status"); 
+  }
+
+  // description string 
+  std::string desc = item[3]; 
+
+  // integer quantity 
+  if (!is_int(item[4]) || std::stoi(item[4]) == 0) {
+    throw InvalidMessage("invalid item quantity"); 
+  }
+  int qty = std::stoi(item[4]); 
+
+  // elements valid so create and return item ptr 
+  return std::make_shared<Item>(order_id, item_id, item_status, desc, qty);
+}
+
+// helper function to decode login messagetype 
+void decode_login(Message &msg, const std::vector<std::string> &vec) {
+  // vec: [type, client mode, string]
+  if (vec.size() != 3) {
+    throw InvalidMessage("message has incorrect number of fields"); 
+  }
+
+  // client mode 
+  ClientMode client_mode = Wire::str_to_client_mode(vec[1]); 
+  if (client_mode == ClientMode::INVALID) {
+    throw InvalidMessage("message has invalid client mode"); 
+  }
+  msg.set_client_mode(client_mode); 
+
+  // string 
+  msg.set_str(vec[2]); 
+}
+
+// helper function to decode quit/ok/error messagetype
+void decode_quit_ok_error(Message &msg, const std::vector<std::string> &vec) {
+  // vec: [type, string]
+  if (vec.size() != 2) {
+    throw InvalidMessage("message has incorrect number of fields"); 
+  }
+
+  // string 
+  msg.set_str(vec[1]); 
+}
+
+// helper function to decode order_new/disp_order messagetype 
+void decode_ordernew_disporder(Message &msg, const std::vector<std::string> &vec) {
+  // vec: [type, order]
+  if (vec.size() != 2) {
+    throw InvalidMessage("message has incorrect number of fields"); 
+  }
+
+  // order 
+  // split order into vector separated by ','
+  auto order_vec = str_to_vec(vec[1], ','); 
+
+  // order_vec: [order id, order status, item list]
+  if (order_vec.size() != 3) {
+    throw InvalidMessage("order has incorrect number of fields"); 
+  }
+
+  // order id 
+  if (!is_int(order_vec[0]) || std::stoi(order_vec[0]) == 0) {
+    throw InvalidMessage("invalid order id"); 
+  }
+  int order_id = std::stoi(order_vec[0]); 
+
+  // order status 
+  OrderStatus order_status = Wire::str_to_order_status(order_vec[1]); 
+  if (order_status == OrderStatus::INVALID) {
+    throw InvalidMessage("invalid order status"); 
+  }
+
+  // elements valid so create order ptr 
+  auto order = std::make_shared<Order>(order_id, order_status); 
+
+  // split item list into vector separated by ';""
+  auto item_list = str_to_vec(order_vec[2], ';'); 
+
+  // item_list: [item1, item2, etc.]
+  for (size_t i = 0; i < item_list.size(); i++) {
+    // add each item to order 
+    order->add_item(decode_item(item_list[i], order_id)); 
+  }
+
+  // add order populated with all items to msg 
+  msg.set_order(order); 
+}
+
+// helper function to decode item_update/disp_item_update messagetype 
+void decode_itemupdate_dispitemupdate(Message &msg, const std::vector<std::string> &vec) {
+  // vec: [type, order id, item id, item status]
+  if (vec.size() != 4) {
+    throw InvalidMessage("message has incorrect number of fields"); 
+  }
+
+  // order id 
+  if (!is_int(vec[1]) || std::stoi(vec[1]) == 0) {
+    throw InvalidMessage("invalid order id"); 
+  }
+  msg.set_order_id(std::stoi(vec[1])); 
+
+  // item id 
+  if (!is_int(vec[2]) || std::stoi(vec[2]) == 0) {
+    throw InvalidMessage("invalid item id"); 
+  }
+  msg.set_item_id(std::stoi(vec[2])); 
+
+  // item_status 
+  ItemStatus item_status = Wire::str_to_item_status(vec[3]); 
+  if (item_status == ItemStatus::INVALID) {
+    throw InvalidMessage("invalid item status"); 
+  }
+  msg.set_item_status(item_status); 
+}
+
+// helper function to decode order_update/disp_order_update messagetype 
+void decode_orderupdate_disporderupdate(Message &msg, const std::vector<std::string> &vec) {
+  // vec: [type, order id, order status]
+  if (vec.size() != 3) {
+    throw InvalidMessage("message has incorrect number of fields"); 
+  }
+
+  // order id 
+  if (!is_int(vec[1]) || std::stoi(vec[1]) == 0) {
+    throw InvalidMessage("invalid order id"); 
+  }
+  msg.set_order_id(std::stoi(vec[1])); 
+
+  // order status 
+  OrderStatus order_status = Wire::str_to_order_status(vec[2]); 
+  if (order_status == OrderStatus::INVALID) {
+    throw InvalidMessage("invalid order status"); 
+  }
+  msg.set_order_status(order_status); 
+}
 
 } // end of anonymous namespace for helper functions
 
@@ -160,7 +352,6 @@ OrderStatus str_to_order_status(const std::string &s) {
 }
 
 void encode(const Message &msg, std::string &s) {
-  // TODO: implement
   s = message_type_to_str(msg.get_type());
 
   if (msg.has_client_mode()) {
@@ -193,7 +384,32 @@ void encode(const Message &msg, std::string &s) {
 }
 
 void decode(const std::string &s, Message &msg) {
-  // TODO: implement
+  // split string into vector separated by '|' 
+  auto vec = str_to_vec(s, '|'); 
+
+  // set message type 
+  MessageType type = str_to_message_type(vec[0]); 
+  if (type == MessageType::INVALID) {
+    throw InvalidMessage("invalid message type"); 
+  }
+  msg.set_type(type); 
+
+  // call helper based on contained data values 
+  if (type == MessageType::LOGIN) {
+    decode_login(msg, vec); 
+  } else if (type == MessageType::QUIT || type == MessageType::OK || type == MessageType::ERROR) {
+    decode_quit_ok_error(msg, vec); 
+  } else if (type == MessageType::ORDER_NEW || type == MessageType::DISP_ORDER) {
+    decode_ordernew_disporder(msg, vec); 
+  } else if (type == MessageType::ITEM_UPDATE || type == MessageType::DISP_ITEM_UPDATE) {
+    decode_itemupdate_dispitemupdate(msg, vec); 
+  } else if (type == MessageType::ORDER_UPDATE || type == MessageType::DISP_ORDER_UPDATE) {
+    decode_orderupdate_disporderupdate(msg, vec); 
+  } else if (type == MessageType::DISP_HEARTBEAT) {
+    return; 
+  } else {
+    throw InvalidMessage("invalid encoded message"); 
+  }
 }
 
 }
