@@ -39,9 +39,9 @@ bool login(int fd, ClientMode client_mode) {
   if (login_recv_msg.get_type() == MessageType::ERROR) {
     std::cerr << "Error: " << login_recv_msg.get_str() << "\n"; 
     return false; 
-  } else if (login_recv_msg.get_type() != MessageType::OK) {
-    std::cerr << "Error: unknown error from login" << "\n"; 
-    return false; 
+  } else if (login_recv_msg.get_type() == MessageType::OK) {
+    return true; 
+  } else {
+    throw ProtocolError("unexpected message type from server");
   }
-  return true; 
 } 

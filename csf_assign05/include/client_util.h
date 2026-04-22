@@ -5,7 +5,7 @@
  * shuan148@jh.edu
  */
 
- #ifndef CLIENT_UTIL_H
+#ifndef CLIENT_UTIL_H
 #define CLIENT_UTIL_H
 
 #include <string> 
@@ -13,6 +13,7 @@
 #include "message.h"
 #include "wire.h"
 #include "io.h"
+#include "except.h"
 
 // helper function to send a message and return the received message 
 Message send_recv(int fd, const Message &msg); 

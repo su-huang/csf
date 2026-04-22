@@ -19,10 +19,14 @@
 
 // helper function to print message response success/failure 
 void print_recv(const Message &msg) {
-  if (msg.get_type() == MessageType::OK)
+  if (msg.get_type() == MessageType::OK) {
     std::cout << "Success: " << msg.get_str() << "\n";
-  else
+  } else if (msg.get_type() == MessageType::ERROR) {
     std::cout << "Failure: " << msg.get_str() << "\n";
+  } else {
+    throw ProtocolError("unexpected message type from server");
+  }
+    
 }
 
 // helper function to parse a new order 
