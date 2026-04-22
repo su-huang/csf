@@ -1,4 +1,9 @@
-// Main program for the display client
+/*
+ * Main program for the display client
+ * CSF Assignment 5 
+ * Su Huang 
+ * shuan148@jh.edu
+ */
 
 #include <iostream>
 #include <string>

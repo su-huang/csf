@@ -1,3 +1,10 @@
+/*
+ * Main program for wire encoding/decoding 
+ * CSF Assignment 5 
+ * Su Huang 
+ * shuan148@jh.edu
+ */
+
 #include <string>
 #include <unordered_map>
 #include <cassert>

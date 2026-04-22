@@ -1,4 +1,11 @@
-#include <sstream>
+/*
+ * Main Cpp program for IO 
+ * CSF Assignment 5 
+ * Su Huang 
+ * shuan148@jh.edu
+ */
+
+ #include <sstream>
 #include <iomanip>
 #include <cassert>
 #include <string>

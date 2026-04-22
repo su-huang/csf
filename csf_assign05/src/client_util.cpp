@@ -1,6 +1,12 @@
-#include "client_util.h"
+/*
+ * Cpp implementation for client util funcs
+ * CSF Assignment 5 
+ * Su Huang 
+ * shuan148@jh.edu
+ */
 
-// TODO: definitions of common clases/functions used by client programs
+ #include "client_util.h"
+
 Message send_recv(int fd, const Message &msg) {
   // encode and send msg 
   std::string encoded_str; 
