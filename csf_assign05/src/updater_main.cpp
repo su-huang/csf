@@ -85,24 +85,9 @@ int main(int argc, char **argv) {
   
   // wrap in try-catch to handle exceptions 
   try {
-    // get credentials 
-    std::string username, password; 
-    std::cout << "username: "; 
-    std::getline(std::cin, username); 
-    std::cout << "password: "; 
-    std::getline(std::cin, password); 
-    std::string credentials = username + '/' + password; 
-
-    // send and receive login message
-    Message login_send_msg(MessageType::LOGIN, ClientMode::UPDATER, credentials); 
-    Message login_recv_msg = send_recv(fd, login_send_msg); 
-
-    // validate received message
-    if (login_recv_msg.get_type() == MessageType::ERROR) {
-      std::cerr << "Error: " << login_recv_msg.get_str() << "\n"; 
-      return 1; 
-    } else if (login_recv_msg.get_type() != MessageType::OK) {
-      std::cerr << "Error: unknown error from login" << "\n"; 
+    // prompt user login 
+    if (!login(fd, ClientMode::UPDATER)) {
+      close(fd); 
       return 1; 
     }
 
