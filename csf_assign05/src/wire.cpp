@@ -115,8 +115,8 @@ const std::string order_to_str(const Order &order) {
 }
 
 // helper function to check if string is int 
-bool is_int(const std::string s) {
-  return !s.empty() && std::all_of(s.begin(), s.end(), ::isdigit);
+bool is_pos_int(const std::string s) {
+  return !s.empty() && std::all_of(s.begin(), s.end(), ::isdigit) && std::stoi(s) != 0;
 }
 
 // helper function to check no element in vec is empty 
@@ -157,12 +157,12 @@ std::shared_ptr<Item> decode_item(std::string s, int order_id) {
 
   // order id 
   // check item's order id matches actual order id 
-  if (!is_int(item[0]) || std::stoi(item[0]) != order_id || std::stoi(item[0]) == 0) {
+  if (!is_pos_int(item[0]) || std::stoi(item[0]) != order_id) {
     throw InvalidMessage("invalid order id"); 
   }
   
   // item id 
-  if (!is_int(item[1]) || std::stoi(item[1]) == 0) {
+  if (!is_pos_int(item[1])) {
     throw InvalidMessage("invalid item id"); 
   }
   int item_id = std::stoi(item[1]); 
@@ -177,7 +177,7 @@ std::shared_ptr<Item> decode_item(std::string s, int order_id) {
   std::string desc = item[3]; 
 
   // integer quantity 
-  if (!is_int(item[4]) || std::stoi(item[4]) == 0) {
+  if (!is_pos_int(item[4])) {
     throw InvalidMessage("invalid item quantity"); 
   }
   int qty = std::stoi(item[4]); 
@@ -232,7 +232,7 @@ void decode_ordernew_disporder(Message &msg, const std::vector<std::string> &vec
   }
 
   // order id 
-  if (!is_int(order_vec[0]) || std::stoi(order_vec[0]) == 0) {
+  if (!is_pos_int(order_vec[0])) {
     throw InvalidMessage("invalid order id"); 
   }
   int order_id = std::stoi(order_vec[0]); 
@@ -267,13 +267,13 @@ void decode_itemupdate_dispitemupdate(Message &msg, const std::vector<std::strin
   }
 
   // order id 
-  if (!is_int(vec[1]) || std::stoi(vec[1]) == 0) {
+  if (!is_pos_int(vec[1])) {
     throw InvalidMessage("invalid order id"); 
   }
   msg.set_order_id(std::stoi(vec[1])); 
 
   // item id 
-  if (!is_int(vec[2]) || std::stoi(vec[2]) == 0) {
+  if (!is_pos_int(vec[2])) {
     throw InvalidMessage("invalid item id"); 
   }
   msg.set_item_id(std::stoi(vec[2])); 
@@ -294,7 +294,7 @@ void decode_orderupdate_disporderupdate(Message &msg, const std::vector<std::str
   }
 
   // order id 
-  if (!is_int(vec[1]) || std::stoi(vec[1]) == 0) {
+  if (!is_pos_int(vec[1]) ) {
     throw InvalidMessage("invalid order id"); 
   }
   msg.set_order_id(std::stoi(vec[1])); 
