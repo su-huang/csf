@@ -26,7 +26,6 @@ void print_recv(const Message &msg) {
   } else {
     throw ProtocolError("unexpected message type from server");
   }
-    
 }
 
 // helper function to parse a new order 
@@ -118,7 +117,7 @@ int main(int argc, char **argv) {
         order_update(fd); 
       } 
     }
-  } catch (const Exception &e) {
+  } catch (const std::exception &e) {
     std::cerr << "Error: " << e.what() << "\n"; 
     close(fd); 
     return 1; 
@@ -126,5 +125,4 @@ int main(int argc, char **argv) {
 
   close(fd); 
   return 0; 
-
 }
