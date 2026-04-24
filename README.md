@@ -6,8 +6,9 @@ instructor: david hovemeyer
 course information: en.601.229 (spring 2026), 3 credits
 
 ##
-assignment overview 
-* [assignment 1](https://github.com/su-huang/csf/tree/main/csf_assign01): big integers - implement a bigint c++ type supporting arbitrary-precision integer arithmetic, including addition, subtraction, multiplication, division, and base conversions.
-* [assignment 2](https://github.com/su-huang/csf/tree/main/csf_assign02): image processing - implement image transformations in c, then re-implement the same functions in x86-64 assembly language.
-* [assignment 3](https://github.com/su-huang/csf/tree/main/csf_assign03): cache simulator - build a command-line, configurable cpu cache simulator that models set-associative caches with different replacement and write policies. compare and analyze the performance of various cache policies.
-* assignment 4: parallel quicksort
+assignment overview
+* [assignment 1: big integers](https://github.com/su-huang/csf/tree/main/csf_assign01) - c++, arbitrary-precision arithmetic, operator overloading, base conversion
+* [assignment 2: image processing](https://github.com/su-huang/csf/tree/main/csf_assign02) - c, 86-64 assembly, simd, memory layout
+* [assignment 3: cache simulator](https://github.com/su-huang/csf/tree/main/csf_assign03) - set-associative caches, replacement policies, write policies, performance analysis
+* [assignment 4: parallel quicksort](https://github.com/su-huang/csf/tree/main/csf_assign04) - mmap, fork, parallelism, process synchronization
+* [assignment 5: restaurant order system](https://github.com/su-huang/csf/tree/main/csf_assign05) - pthreads, mutex synchronization, tcp sockets, client-server protocol
