@@ -15,6 +15,8 @@ class Server {
 private:
   // Private data
   // TODO: add fields
+  pthread_mutex_t m_mutex; 
+  int m_next_order_id; 
 
   // no value semantics
   NO_VALUE_SEMANTICS(Server);
