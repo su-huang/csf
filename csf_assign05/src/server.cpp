@@ -82,4 +82,169 @@ void Server::server_loop(const char *port) {
 }
 
 // TODO: other member functions
+std::shared_ptr<Order> Server::order_new(std::shared_ptr<Order> order) {
+  // modifying shared server so need critical section 
+  Guard g(m_mutex); 
+
+  // process new order 
+  int order_id = m_next_order_id++; 
+  order->set_id(order_id); 
+  order->set_status(OrderStatus::NEW); 
+  m_orders_map[order_id] = order; 
+  
+  // broadcast message to display clients 
+  auto msg = std::make_shared<Message>(MessageType::DISP_ORDER, order); 
+  broadcast(msg); 
+
+  return order; 
+} 
+
+void Server::order_update(int order_id, OrderStatus new_order_status) {
+  // modifying shared server so need critical section 
+  Guard g(m_mutex); 
+
+  // validate and assign order transition 
+  auto order = valid_order_id(order_id); 
+  if (order == NULL) {
+    throw SemanticError("order not found"); 
+  }
+  if (!valid_next_order_status(order->get_status(), new_order_status)) {
+    throw SemanticError("invalid order status update"); 
+  }
+  order->set_status(new_order_status); 
+
+  // broadcast message to display clients 
+  auto msg = std::make_shared<Message>(MessageType::DISP_ORDER_UPDATE, order_id, new_order_status); 
+  broadcast(msg); 
+
+  // delete order if now delivered 
+  if (new_order_status == OrderStatus::DELIVERED) {
+    m_orders_map.erase(order_id); 
+  }
+}
+
+void Server::item_update(int order_id, int item_id, ItemStatus new_item_status) {
+  // modifying shared server so need critical section 
+  Guard g(m_mutex); 
+
+  // validate and assign item transition 
+  auto order = valid_order_id(order_id); 
+  if (!order) {
+    throw SemanticError("order not found"); 
+  }
+  auto item = order->find_item(item_id); 
+  if (!item) {
+    throw SemanticError("item not found"); 
+  }
+  if (!valid_next_item_status(item->get_status(), new_item_status)) {
+    throw SemanticError("invalid item status update"); 
+  }
+  item->set_status(new_item_status); 
+
+  // broadcast message to display clients 
+  auto msg = std::make_shared<Message>(MessageType::DISP_ITEM_UPDATE, order_id, item_id, new_item_status); 
+  broadcast(msg); 
+
+  // set order to in progress if it's the first item set to in progress
+  if (first_in_progress(order, item_id)) {
+    order_update_internal(order, OrderStatus::IN_PROGRESS); 
+  }
+
+  // set order to done if all items are now done 
+  if (all_items_done(order)) {
+    order_update_internal(order, OrderStatus::DONE); 
+  }
+}
+
+void Server::add_display_client(Client *client) {
+  // modifying shared server so need critical section 
+  Guard g(m_mutex); 
+
+  // add client to set 
+  m_display_clients_set.insert(client); 
+}
+
+void Server::remove_display_client(Client *client) {
+  // modifying shared server so need critical section 
+  Guard g(m_mutex); 
+
+  // remove client from set 
+  m_display_clients_set.erase(client); 
+}
+
+std::shared_ptr<Order> Server::valid_order_id(int order_id) const {
+  // verify that order id exists 
+  auto i = m_orders_map.find(order_id); 
+  if (i == m_orders_map.end()) {
+    return std::shared_ptr<Order>(); 
+  }
+  return i->second; 
+}
+
+bool Server::valid_next_order_status(OrderStatus curr_status, OrderStatus next_status) const {
+  // only allow the following sequences of order status changes 
+  if (curr_status == OrderStatus::NEW) {
+    return next_status == OrderStatus::IN_PROGRESS; 
+  } else if (curr_status == OrderStatus::IN_PROGRESS) {
+    return next_status == OrderStatus::DONE; 
+  } else if (curr_status == OrderStatus::DONE) {
+    return next_status == OrderStatus::DELIVERED; 
+  } 
+
+  return false; 
+}
+
+bool Server::valid_next_item_status(ItemStatus curr_status, ItemStatus next_status) const {
+  // only allow the following sequences of item status changes 
+  if (curr_status == ItemStatus::NEW) {
+    return next_status == ItemStatus::IN_PROGRESS; 
+  } else if (curr_status == ItemStatus::IN_PROGRESS) {
+    return next_status == ItemStatus::DONE; 
+  }
+
+  return false; 
+}
+
+bool Server::first_in_progress(const std::shared_ptr<Order> order, int item_id) const {
+  // early termination if given item isn't in progress 
+  if (order->find_item(item_id)->get_status() != ItemStatus::IN_PROGRESS) {
+    return false; 
+  }
+
+  // return false if any other items isn't new 
+  for (int i = 0; i < order->get_num_items(); i++) {
+    if (order->at(i)->get_status() != ItemStatus::NEW && order->at(i)->get_id() != item_id) {
+      return false; 
+    }
+  }
+
+  return true; 
+}
+  
+bool Server::all_items_done(const std::shared_ptr<Order> order) const {
+  // return false if any item isn't done 
+  for (int i = 0; i < order->get_num_items(); i++) {
+    if (order->at(i)->get_status() != ItemStatus::DONE) {
+      return false; 
+    }
+  }
+
+  return true; 
+}
+
+void Server::order_update_internal(const std::shared_ptr<Order> order, OrderStatus new_order_status) {
+  // assign order new status 
+  order->set_status(new_order_status); 
+
+  // broadcast message to display clients 
+  auto msg = std::make_shared<Message>(MessageType::DISP_ORDER_UPDATE, order->get_id(), new_order_status); 
+  broadcast(msg); 
+
+  // delete order if now delivered 
+  if (new_order_status == OrderStatus::DELIVERED) {
+    m_orders_map.erase(order->get_id()); 
+  }
+}
+
+void Server::broadcast(const std::shared_ptr<Message> msg) const {}
 
