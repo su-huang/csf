@@ -21,6 +21,7 @@ private:
   int m_fd; // socket file descriptor for communicating with client
   Server *m_server; // pointer to Server instance
   // TODO: add additional fields if needed
+  ClientMode m_mode; // set after login 
 
   NO_VALUE_SEMANTICS(Client);
 
@@ -47,6 +48,14 @@ public:
 
 private:
   // TODO: private member functions
+  // helper function to encode and send message 
+  void send_msg(const Message &msg);
+
+  // helper function to decode and receive message 
+  Message recv_msg(); 
+
+  // helper function to validate login 
+  void handle_login(); 
 };
 
 #endif // CLIENT_H
