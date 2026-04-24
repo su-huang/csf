@@ -54,8 +54,23 @@ private:
   // helper function to decode and receive message 
   Message recv_msg(); 
 
+  // helper function to add new order 
+  void handle_order_new(const Message &msg); 
+
+  // helper function to update item 
+  void handle_item_update(const Message &msg); 
+
+  // helper function to update order 
+  void handle_order_update(const Message &msg); 
+
   // helper function to validate login 
   void handle_login(); 
+
+  // helper function to process updater client input 
+  void handle_updater_client(); 
+
+  // helper function to process display client input
+  void handle_display_client(); 
 };
 
 #endif // CLIENT_H

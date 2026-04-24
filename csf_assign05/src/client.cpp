@@ -23,14 +23,17 @@ void Client::chat() {
   // TODO: implement
   try {
     handle_login(); 
+    if (m_mode == ClientMode::UPDATER) {
+      handle_updater_client(); 
+    } else if (m_mode == ClientMode::DISPLAY) {
+      handle_display_client(); 
+    }
   } catch (const IOException &e) {
     return; 
   } catch (const ProtocolError &e) {
     return; 
   } catch (const SemanticError &e) {
-    try {
-      send_msg(Message(MessageType::ERROR, e.what())); 
-    } catch (...) {}
+    send_msg(Message(MessageType::ERROR, e.what())); 
   }
   return; 
 }
@@ -79,3 +82,55 @@ void Client::handle_login() {
   send_msg(Message(MessageType::OK, "successful login")); 
 }
 
+void Client::handle_order_new(const Message &msg) {
+  // verify order id
+  if (msg.get_order()->get_id() != 1) {
+    throw SemanticError("invalid order id"); 
+  }
+
+  // get server to create new order, respond with ok message 
+  auto order = m_server->order_new(msg.get_order()); 
+  send_msg(Message(MessageType::OK, "Created order id " + std::to_string(order->get_id()))); 
+}
+
+void Client::handle_item_update(const Message &msg) {
+  try {
+    // attempt to get server to update item, respond with ok message 
+    m_server->item_update(msg.get_order_id(), msg.get_item_id(), msg.get_item_status()); 
+    send_msg(Message(MessageType::OK, "updated item status")); 
+  } catch (const SemanticError &e) {
+    // catch error from server, respond with error message 
+    send_msg(Message(MessageType::ERROR, e.what())); 
+  } 
+}
+
+void Client::handle_order_update(const Message &msg) {
+  try {
+    // attempt to get server to update order, respond with ok message 
+    m_server->order_update(msg.get_order_id(), msg.get_order_status()); 
+    send_msg(Message(MessageType::OK, "updated order status")); 
+  } catch (const SemanticError &e) {
+    // catch error from server, respond with error message 
+    send_msg(Message(MessageType::ERROR, e.what())); 
+  }
+}
+
+void Client::handle_updater_client() {
+  while (true) {
+    Message msg = recv_msg(); 
+
+    if (msg.get_type() == MessageType::QUIT) {
+      // respond with ok message and exit loop 
+      send_msg(Message(MessageType::OK, "exit")); 
+      return; 
+    } else if (msg.get_type() == MessageType::ORDER_NEW) {
+      handle_order_new(msg); 
+    } else if (msg.get_type() == MessageType::ITEM_UPDATE) {
+      handle_item_update(msg); 
+    } else if (msg.get_type() == MessageType::ORDER_UPDATE) {
+      handle_order_update(msg); 
+    }
+  }
+}
+
+void Client::handle_display_client() {}
