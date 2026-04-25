@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 #include <cassert>
+#include <unistd.h>
+#include <vector> 
 #include "message.h"
 #include "wire.h"
 #include "io.h"
@@ -12,15 +14,14 @@
 Client::Client(int fd, Server *server)
   : m_fd(fd)
   , m_server(server) {
-  // TODO: do any necessary initialization
+  m_mode = ClientMode::INVALID; 
 }
 
 Client::~Client() {
-  // TODO: do any necessary cleanup
+  close(m_fd); 
 }
 
 void Client::chat() {
-  // TODO: implement
   try {
     handle_login(); 
     if (m_mode == ClientMode::UPDATER) {
@@ -34,11 +35,14 @@ void Client::chat() {
     return; 
   } catch (const SemanticError &e) {
     send_msg(Message(MessageType::ERROR, e.what())); 
-  }
+  } 
   return; 
 }
 
-// TODO: implement other member functions
+void Client::enqueue_display_msg(std::shared_ptr<Message> msg) {
+  m_queue.enqueue(msg); 
+}
+
 void Client::send_msg(const Message &msg) {
   std::string encoded_str; 
   Wire::encode(msg, encoded_str); 
@@ -133,4 +137,31 @@ void Client::handle_updater_client() {
   }
 }
 
-void Client::handle_display_client() {}
+void Client::handle_display_client() {
+  // send disp order messages for all orders 
+  auto orders_vec = m_server->get_all_orders(); 
+  for (auto &order : orders_vec) {
+    send_msg(Message(MessageType::DISP_ORDER, order)); 
+  }
+
+  // ensure client gets broadcasts 
+  m_server->add_display_client(this); 
+
+  try {
+    while (true) {
+      auto msg = m_queue.dequeue(); 
+      if (msg) {
+        // send available message 
+        send_msg(*msg); 
+      } else {
+        // no available message so send heartbeat 
+        send_msg(Message(MessageType::DISP_HEARTBEAT, "")); 
+      }
+    }
+  } catch (...) {
+    // remove display client if exception 
+    m_server->remove_display_client(this); 
+    return; 
+  }
+}
+

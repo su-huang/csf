@@ -20,8 +20,8 @@ class Client {
 private:
   int m_fd; // socket file descriptor for communicating with client
   Server *m_server; // pointer to Server instance
-  // TODO: add additional fields if needed
   ClientMode m_mode; // set after login 
+  MessageQueue m_queue; 
 
   NO_VALUE_SEMANTICS(Client);
 
@@ -44,10 +44,10 @@ public:
   // is terminated nicely and resources are cleaned up.
   void chat();
 
-  // TODO: more public member functions
+  // helper function to enqueue a display message 
+  void enqueue_display_msg(std::shared_ptr<Message> msg); 
 
 private:
-  // TODO: private member functions
   // helper function to encode and send message 
   void send_msg(const Message &msg);
 
