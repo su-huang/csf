@@ -1,4 +1,11 @@
-#include <iostream>
+/*
+ * Cpp implementation for server
+ * CSF Assignment 5 
+ * Su Huang 
+ * shuan148@jh.edu
+ */
+
+ #include <iostream>
 #include <memory>
 #include <cstring> // for strerror()
 #include <cerrno>  // for errno

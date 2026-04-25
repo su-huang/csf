@@ -1,5 +1,5 @@
 /*
- * Main program for the updater client
+ * Cpp implementation for updater client
  * CSF Assignment 5 
  * Su Huang 
  * shuan148@jh.edu

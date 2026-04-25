@@ -1,4 +1,11 @@
-#ifndef MESSAGE_QUEUE_H
+/*
+ * Header for message queue
+ * CSF Assignment 5 
+ * Su Huang 
+ * shuan148@jh.edu
+ */
+
+ #ifndef MESSAGE_QUEUE_H
 #define MESSAGE_QUEUE_H
 
 #include <pthread.h>
@@ -13,7 +20,6 @@ class Message;
 class MessageQueue {
 private:
   std::deque<std::shared_ptr<Message>> m_queue;
-  // TODO: synchronization
   pthread_mutex_t m_mutex;    // synchronization construct to guarantee mutual exclusion 
   sem_t m_sem;                // keep track of how many messages have been added to the queue 
 

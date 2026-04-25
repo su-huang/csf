@@ -1,4 +1,11 @@
-#include <cassert>
+/*
+ * Cpp implementation for model
+ * CSF Assignment 5 
+ * Su Huang 
+ * shuan148@jh.edu
+ */
+
+ #include <cassert>
 #include "model.h"
 
 Item::Item(int order_id, int id, ItemStatus status, const std::string &desc, int qty)
@@ -75,5 +82,3 @@ std::shared_ptr<Item> Order::find_item(int item_id) const {
   // no such item
   return std::shared_ptr<Item>();
 }
-
-// TODO: define additional member functions

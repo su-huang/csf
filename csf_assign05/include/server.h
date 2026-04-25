@@ -1,4 +1,11 @@
-#ifndef SERVER_H
+/*
+ * Header for server
+ * CSF Assignment 5 
+ * Su Huang 
+ * shuan148@jh.edu
+ */
+
+ #ifndef SERVER_H
 #define SERVER_H
 
 #include <map>

@@ -126,8 +126,6 @@ public:
   // returns an "empty" shared_ptr if there is no Item
   // with the specified item id
   std::shared_ptr<Item> find_item(int item_id) const;
-
-  // TODO: add other member functions as needed
 };
 
 
