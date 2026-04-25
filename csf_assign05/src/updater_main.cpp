@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
     // prompt user login 
     if (!login(fd, ClientMode::UPDATER)) {
       close(fd); 
-      return 1; 
+      exit(1); 
     }
 
     while (true) {
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
   } catch (const std::exception &e) {
     std::cerr << "Error: " << e.what() << "\n"; 
     close(fd); 
-    return 1; 
+    exit(1); 
   }
 
   close(fd); 

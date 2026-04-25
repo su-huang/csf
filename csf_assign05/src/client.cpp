@@ -1,5 +1,5 @@
 /*
- * Cpp implementation for client util
+ * Cpp implementation for client 
  * CSF Assignment 5 
  * Su Huang 
  * shuan148@jh.edu
@@ -37,11 +37,15 @@ void Client::chat() {
       handle_display_client(); 
     }
   } catch (const IOException &e) {
-    return; 
+    std::cerr << "Error: " << e.what() << std::endl;
+    exit(1);
   } catch (const ProtocolError &e) {
-    return; 
+    std::cerr << "Error: " << e.what() << std::endl;
+    exit(1);
   } catch (const SemanticError &e) {
     send_msg(Message(MessageType::ERROR, e.what())); 
+    std::cerr << "Error: " << e.what() << std::endl;
+    exit(1);
   } 
   return; 
 }
