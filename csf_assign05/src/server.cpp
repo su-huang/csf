@@ -206,16 +206,8 @@ std::shared_ptr<Order> Server::valid_order_id(int order_id) const {
 }
 
 bool Server::valid_next_order_status(OrderStatus curr_status, OrderStatus next_status) const {
-  // only allow the following sequences of order status changes 
-  if (curr_status == OrderStatus::NEW) {
-    return next_status == OrderStatus::IN_PROGRESS; 
-  } else if (curr_status == OrderStatus::IN_PROGRESS) {
-    return next_status == OrderStatus::DONE; 
-  } else if (curr_status == OrderStatus::DONE) {
-    return next_status == OrderStatus::DELIVERED; 
-  } 
-
-  return false; 
+  // only allow the following sequence of order status changes 
+  return curr_status == OrderStatus::DONE && next_status == OrderStatus::DELIVERED; 
 }
 
 bool Server::valid_next_item_status(ItemStatus curr_status, ItemStatus next_status) const {

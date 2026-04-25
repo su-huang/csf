@@ -107,7 +107,8 @@ int main(int argc, char **argv) {
 
       // determine command to perform 
       if (user_input == "quit") {
-        send_recv(fd, Message(MessageType::QUIT, std::string("quit"))); 
+        Message quit_recv_msg = send_recv(fd, Message(MessageType::QUIT, std::string("quit"))); 
+        print_recv(quit_recv_msg); 
         break; 
       } else if (user_input == "order_new") {
         order_new(fd); 

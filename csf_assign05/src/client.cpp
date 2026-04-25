@@ -37,15 +37,12 @@ void Client::chat() {
       handle_display_client(); 
     }
   } catch (const IOException &e) {
-    std::cerr << "Error: " << e.what() << std::endl;
-    exit(1);
+    return; 
   } catch (const ProtocolError &e) {
-    std::cerr << "Error: " << e.what() << std::endl;
-    exit(1);
+    return; 
   } catch (const SemanticError &e) {
     send_msg(Message(MessageType::ERROR, e.what())); 
-    std::cerr << "Error: " << e.what() << std::endl;
-    exit(1);
+    return; 
   } 
   return; 
 }
@@ -109,25 +106,13 @@ void Client::handle_order_new(const Message &msg) {
 }
 
 void Client::handle_item_update(const Message &msg) {
-  try {
-    // attempt to get server to update item, respond with ok message 
-    m_server->item_update(msg.get_order_id(), msg.get_item_id(), msg.get_item_status()); 
-    send_msg(Message(MessageType::OK, "updated item status")); 
-  } catch (const SemanticError &e) {
-    // catch error from server, respond with error message 
-    send_msg(Message(MessageType::ERROR, e.what())); 
-  } 
+  m_server->item_update(msg.get_order_id(), msg.get_item_id(), msg.get_item_status()); 
+  send_msg(Message(MessageType::OK, "updated item status")); 
 }
 
 void Client::handle_order_update(const Message &msg) {
-  try {
-    // attempt to get server to update order, respond with ok message 
-    m_server->order_update(msg.get_order_id(), msg.get_order_status()); 
-    send_msg(Message(MessageType::OK, "updated order status")); 
-  } catch (const SemanticError &e) {
-    // catch error from server, respond with error message 
-    send_msg(Message(MessageType::ERROR, e.what())); 
-  }
+  m_server->order_update(msg.get_order_id(), msg.get_order_status()); 
+  send_msg(Message(MessageType::OK, "updated order status")); 
 }
 
 void Client::handle_updater_client() {
@@ -138,12 +123,20 @@ void Client::handle_updater_client() {
       // respond with ok message and exit loop 
       send_msg(Message(MessageType::OK, "exit")); 
       return; 
-    } else if (msg.get_type() == MessageType::ORDER_NEW) {
-      handle_order_new(msg); 
-    } else if (msg.get_type() == MessageType::ITEM_UPDATE) {
-      handle_item_update(msg); 
-    } else if (msg.get_type() == MessageType::ORDER_UPDATE) {
-      handle_order_update(msg); 
+    } 
+
+    try {
+      if (msg.get_type() == MessageType::ORDER_NEW) {
+        handle_order_new(msg);
+      } else if (msg.get_type() == MessageType::ITEM_UPDATE) {
+        handle_item_update(msg);
+      } else if (msg.get_type() == MessageType::ORDER_UPDATE) {
+        handle_order_update(msg);
+      } else {
+        throw ProtocolError("unexpected message type");
+      }
+    } catch (const SemanticError &e) {
+      send_msg(Message(MessageType::ERROR, e.what()));
     }
   }
 }
