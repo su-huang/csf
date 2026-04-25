@@ -37,5 +37,6 @@ std::shared_ptr<Message> MessageQueue::dequeue() {
 
   // dequeue first message 
   auto msg = m_queue.front(); 
+  m_queue.pop_front();
   return msg; 
 }
