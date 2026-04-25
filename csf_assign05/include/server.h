@@ -1,9 +1,10 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include <unordered_map>
+#include <map>
 #include <unordered_set>
 #include <pthread.h>
+#include <vector> 
 #include "util.h"
 #include "model.h"
 
@@ -14,10 +15,9 @@ class Message;
 class Server {
 private:
   // Private data
-  // TODO: add fields
   pthread_mutex_t m_mutex;  // synchronization construct to guarantee mutual exclusion 
   int m_next_order_id;      // track next order id
-  std::unordered_map<int, std::shared_ptr<Order>> m_orders_map;   // maps order id to order objects 
+  std::map<int, std::shared_ptr<Order>> m_orders_map;   // maps order id to order objects 
   std::unordered_set<Client*> m_display_clients_set;              // set of active display clients 
 
   // no value semantics
@@ -47,9 +47,11 @@ public:
   // remove display client 
   void remove_display_client(Client *client); 
 
-private:
-  // TODO: private member functions
+  // return vector of orders 
+  std::vector<std::shared_ptr<Order>> get_all_orders(); 
 
+
+private:
   // helper function to check valid order id (return null if invalid)
   std::shared_ptr<Order> valid_order_id(int order_id) const ; 
 

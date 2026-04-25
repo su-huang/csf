@@ -13,7 +13,6 @@
 
 namespace {
 
-// TODO: you can define standalone helper functions here
 // worker thread detaches itself and calls chat 
 void *worker(void *arg) {
   pthread_detach(pthread_self());
@@ -49,7 +48,7 @@ int accept_connection(int ssock_fd, struct sockaddr_in client_addr) {
 
 Server::Server() {
   pthread_mutex_init(&m_mutex, NULL); 
-  m_next_order_id = 1000; 
+  m_next_order_id = 1000;                  // actual order ids begin at 1000 
 }
 
 Server::~Server() {
@@ -81,7 +80,6 @@ void Server::server_loop(const char *port) {
   }
 }
 
-// TODO: other member functions
 std::shared_ptr<Order> Server::order_new(std::shared_ptr<Order> order) {
   // modifying shared server so need critical section 
   Guard g(m_mutex); 
@@ -90,6 +88,11 @@ std::shared_ptr<Order> Server::order_new(std::shared_ptr<Order> order) {
   int order_id = m_next_order_id++; 
   order->set_id(order_id); 
   order->set_status(OrderStatus::NEW); 
+
+  // update each item's order id
+  for (int i = 0; i < order->get_num_items(); i++) {
+    order->at(i)->set_order_id(order_id); 
+  }
   m_orders_map[order_id] = order; 
   
   // broadcast message to display clients 
@@ -161,6 +164,7 @@ void Server::add_display_client(Client *client) {
   Guard g(m_mutex); 
 
   // add client to set 
+  std::cerr << "Adding client address: " << client << std::endl;
   m_display_clients_set.insert(client); 
 }
 
@@ -170,6 +174,19 @@ void Server::remove_display_client(Client *client) {
 
   // remove client from set 
   m_display_clients_set.erase(client); 
+}
+
+std::vector<std::shared_ptr<Order>> Server::get_all_orders() {
+  // acessing shared server so need critical section 
+  Guard g(m_mutex); 
+
+  // iterate through map and save orders in vector 
+  std::vector<std::shared_ptr<Order>> orders_vec; 
+  for (auto &orderid_order : m_orders_map) {
+    orders_vec.push_back(orderid_order.second); 
+  }
+
+  return orders_vec; 
 }
 
 std::shared_ptr<Order> Server::valid_order_id(int order_id) const {
@@ -246,5 +263,10 @@ void Server::order_update_internal(const std::shared_ptr<Order> order, OrderStat
   }
 }
 
-void Server::broadcast(const std::shared_ptr<Message> msg) const {}
+void Server::broadcast(const std::shared_ptr<Message> msg) const {
+  for (Client *client : m_display_clients_set) {
+    // enqueue a distinct copy of the message for each client 
+    client->enqueue_display_msg(msg->duplicate()); 
+  }
+}
 
