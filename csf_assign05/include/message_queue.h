@@ -14,6 +14,8 @@ class MessageQueue {
 private:
   std::deque<std::shared_ptr<Message>> m_queue;
   // TODO: synchronization
+  pthread_mutex_t m_mutex;    // synchronization construct to guarantee mutual exclusion 
+  sem_t m_sem;                // keep track of how many messages have been added to the queue 
 
   // No value semantics
   NO_VALUE_SEMANTICS(MessageQueue);
