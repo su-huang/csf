@@ -985,23 +985,36 @@ imgproc_squash:
 	movl %edx, %r14d	/* move xfac from %edx to %r14d */ 
 	movl %ecx, %r15d 	/* move yfac from %ecx to %r15d */ 
 
-	/* initializes output image dimensions: img_init(output_img, input_img->width / xfac, input_img->height / yfac) */
+	/* calculate and initialize output image dimensions */
 	movl IMAGE_WIDTH_OFFSET(%r12), %eax		/* dereference pointer to width (32-bit) in %r12 and move to %eax */ 
 	cltd 									/* make 64-bit version spread across %edx:%eax for 64-bit division */
-	idivl %r14d 							/* divide 64-bit width by 32-bit xfac and store quotient in %eax, remainder in %edx*/
-	movl %eax, %esi 						/* move quotient (output image width) from %eax to %esi (2nd arg for img_init) */
+	idivl %r14d 							/* divide 64-bit width by 32-bit xfac and store quotient in %eax, remainder in %edx */
+	movl %eax, %r8d							/* move quotient (output image width) from %eax to %r8d */
 
 	movl IMAGE_HEIGHT_OFFSET(%r12), %eax 	/* dereference pointer to height (32-bit) in %r12 and move to %eax */ 
 	cltd 									/* make 64-bit version spread across %edx:%eax for 64-bit division */
 	idivl %r15d 							/* divide 64-bit height by 32-bit yfac and store quotient in %eax, remainder in %edx*/
-	movl %eax, %edx  						/* move quotient (output image height) from %eax to %edx (3rd arg for img_init) */
+	movl %eax, %r9d  						/* move quotient (output image height) from %eax to r9d */
 
+	/* leak prevention by checking if output image is null */
+	cmpq $0, IMAGE_DATA_OFFSET(%r13)		/* compare null (0) with output_img->data */
+	jne .Lsquash_skip_init 					/* jump to skip re-allocation if output_img->data != 0 */
+
+	/* output image is null so allocate output image: img_init(output_img, input_img->width / xfac, input_img->height / yfac)*/
 	movq %r13, %rdi 						/* move ouput image pointer from %r13 to %rdi (1st arg for img_init) */ 
+	movl %r8d, %esi							/* move output image width from %r8d to %esi (2nd arg for img_init) */
+	movl %r9d, %edx							/* move output image height from %r9d to %edx (3rd arg for img_init) */
 	call img_init							/* call img_init and return in %eax */ 
 	
-	cmpl $0, %eax		/* compare 0 with return from img_init */ 	
-	jne .Lsquash_done	/* jump to end if return value != 0 */
+	cmpl $0, %eax					/* compare 0 with return from img_init */ 	
+	jne .Lsquash_done				/* jump to end if return value != 0 */
+	jmp .Lsquash_loop_setup			/* begin loop if return value = 0 */
 
+.Lsquash_skip_init: 
+	movl %r8d, IMAGE_WIDTH_OFFSET(%r13)		/* move output image width from %r8d to %r13 */
+	movl %r9d, IMAGE_HEIGHT_OFFSET(%r13)	/* move output image height from %r9d to %r13 */
+
+.Lsquash_loop_setup: 
 	movl $0, %ebx 		/* move 0 to %ebx (row index) */ 
 
 .Lsquash_loop_row: 
@@ -1108,16 +1121,31 @@ imgproc_color_rot:
 	movq %rdi, %r12 	/* move input image pointer from %rdi to %r12 */ 
 	movq %rsi, %r13 	/* move output image pointer from %rsi to %r13 */ 
 
-	/* initializes output image dimensions: img_init(output_img, input_img->width, input_img->height) */ 
+	/* calculate and initialize output image dimensions */ 
 	movq %r13, %rdi								/* move output image pointer from %r13 to %rdi (1st arg for img_init) */ 
-	movl IMAGE_WIDTH_OFFSET(%r12), %esi 		/* dereference pointer to width (32-bit) in %r12 and move to %esi (2nd arg for img_init) */ 
-	movl IMAGE_HEIGHT_OFFSET(%r12), %edx 		/* dereference pointer to height (32-bit) in %r12 and move to %edx (3rd arg for img_init) */ 
-	call img_init								/* call img_init and return in %eax */ 
+	movl IMAGE_WIDTH_OFFSET(%r12), %r8d 		/* dereference pointer to width (32-bit) in %r12 and move to %r8d */ 
+	movl IMAGE_HEIGHT_OFFSET(%r12), %r9d 		/* dereference pointer to height (32-bit) in %r12 and move to %r9d */ 
 
-	cmpl $0, %eax 		/* compare 0 with return from img_init */
-	jne .Lrot_done		/* jump to end if return value != 0 */
+	/* leak prevention by checking if output image is null */
+	cmpq $0, IMAGE_DATA_OFFSET(%r13)		/* compare null (0) with output_img->data */
+	jne .Lrot_skip_init 					/* jump to skip re-allocation if output_img->data != 0 */
 
-	movl $0, %r14d 		/* move 0 to %r14 (row index) */ 
+	/* output image is null so allocate output image: img_init(output_img, input_img->width / xfac, input_img->height / yfac)*/
+	movq %r13, %rdi 						/* move ouput image pointer from %r13 to %rdi (1st arg for img_init) */ 
+	movl %r8d, %esi							/* move output image width from %r8d to %esi (2nd arg for img_init) */
+	movl %r9d, %edx							/* move output image height from %r9d to %edx (3rd arg for img_init) */
+	call img_init							/* call img_init and return in %eax */ 
+	
+	cmpl $0, %eax					/* compare 0 with return from img_init */ 	
+	jne .Lrot_done					/* jump to end if return value != 0 */
+	jmp .Lrot_loop_setup			/* begin loop if return value = 0 */
+
+.Lrot_skip_init: 
+	movl %r8d, IMAGE_WIDTH_OFFSET(%r13)		/* move output image width from %r8d to %r13 */
+	movl %r9d, IMAGE_HEIGHT_OFFSET(%r13)	/* move output image height from %r9d to %r13 */
+
+.Lrot_loop_setup: 
+	movl $0, %r14d		/* move 0 to %r14d (row index) */ 
 
 .Lrot_loop_row: 
 	cmpl IMAGE_HEIGHT_OFFSET(%r13), %r14d	/* compare output image height with row index */
@@ -1234,17 +1262,32 @@ imgproc_blur:
 	movq %rdi, %r12 	/* move input image pointer from %rdi to %r12 */ 
 	movq %rsi, %r13 	/* move output image pointer from %rsi to %r13 */ 
 	movl %edx, %r14d
-
-	/* initializes output image dimensions: img_init(output_img, input_img->width, input_img->height) */ 
+	
+	/* calculate and initialize output image dimensions */ 
 	movq %r13, %rdi								/* move output image pointer from %r13 to %rdi (1st arg for img_init) */ 
-	movl IMAGE_WIDTH_OFFSET(%r12), %esi 		/* dereference pointer to width (32-bit) in %r12 and move to %esi (2nd arg for img_init) */ 
-	movl IMAGE_HEIGHT_OFFSET(%r12), %edx 		/* dereference pointer to height (32-bit) in %r12 and move to %edx (3rd arg for img_init) */ 
-	call img_init								/* call img_init and return in %eax */ 
+	movl IMAGE_WIDTH_OFFSET(%r12), %r8d 		/* dereference pointer to width (32-bit) in %r12 and move to %r8d */ 
+	movl IMAGE_HEIGHT_OFFSET(%r12), %r9d 		/* dereference pointer to height (32-bit) in %r12 and move to %r9d */ 
 
-	cmpl $0, %eax 					/* compare 0 with return from img_init */
-	jne .Limgproc_blur_done			/* jump to end if return value != 0 */
+	/* leak prevention by checking if output image is null */
+	cmpq $0, IMAGE_DATA_OFFSET(%r13)		/* compare null (0) with output_img->data */
+	jne .Limgproc_blur_skip_init 			/* jump to skip re-allocation if output_img->data != 0 */
 
-	movl $0, %r15d 		/* move 0 to %r15d (row index) */ 
+	/* output image is null so allocate output image: img_init(output_img, input_img->width / xfac, input_img->height / yfac)*/
+	movq %r13, %rdi 						/* move ouput image pointer from %r13 to %rdi (1st arg for img_init) */ 
+	movl %r8d, %esi							/* move output image width from %r8d to %esi (2nd arg for img_init) */
+	movl %r9d, %edx							/* move output image height from %r9d to %edx (3rd arg for img_init) */
+	call img_init							/* call img_init and return in %eax */ 
+	
+	cmpl $0, %eax							/* compare 0 with return from img_init */ 	
+	jne .Limgproc_blur_done					/* jump to end if return value != 0 */
+	jmp .Limgproc_blur_loop_setup			/* begin loop if return value = 0 */
+
+.Limgproc_blur_skip_init: 
+	movl %r8d, IMAGE_WIDTH_OFFSET(%r13)		/* move output image width from %r8d to %r13 */
+	movl %r9d, IMAGE_HEIGHT_OFFSET(%r13)	/* move output image height from %r9d to %r13 */
+
+.Limgproc_blur_loop_setup: 
+	movl $0, %r15d		/* move 0 to %r15d (row index) */ 
 
 .Limgproc_blur_loop_row: 
 	cmpl IMAGE_HEIGHT_OFFSET(%r13), %r15d		/* compare output image height with row index */
@@ -1371,19 +1414,34 @@ imgproc_expand:
 	subq $8, %rsp 		/* align %rsp to be a multiple of 16 */
 	movq %rdi, %r12 	/* move input image pointer from %rdi to %r12 */ 
 	movq %rsi, %r13 	/* move output image pointer from %rsi to %r13 */ 
-
-	/* initializes output image dimensions: img_init(output_img, input_img->width * 2, input_img->height * 2) */ 
+	
+	/* calculate and initialize output image dimensions */ 
 	movq %r13, %rdi								/* move output image pointer from %r13 to %rdi (1st arg for img_init) */ 
-	movl IMAGE_WIDTH_OFFSET(%r12), %esi 		/* dereference pointer to width (32-bit) in %r12 and move to %esi (2nd arg for img_init) */ 
-	movl IMAGE_HEIGHT_OFFSET(%r12), %edx 		/* dereference pointer to height (32-bit) in %r12 and move to %edx (3rd arg for img_init) */ 
-	shll $1, %esi								/* left-shift width to multiply by 2 (2nd arg for img_init) */
-	shll $1, %edx								/* right-shift width to multiply by 2 (3rd arg for img_init) */
-	call img_init								/* call img_init and return in %eax */ 
+	movl IMAGE_WIDTH_OFFSET(%r12), %r8d 		/* dereference pointer to width (32-bit) in %r12 and move to %r8d */ 
+	movl IMAGE_HEIGHT_OFFSET(%r12), %r9d 		/* dereference pointer to height (32-bit) in %r12 and move to %r9d */ 
+	shll $1, %r8d								/* left-shift width to multiply by 2 */
+	shll $1, %r9d								/* right-shift width to multiply by 2 */
 
-	cmpl $0, %eax 					/* compare 0 with return from img_init */
-	jne .Limgproc_expand_done		/* jump to end if return value != 0 */
+	/* leak prevention by checking if output image is null */
+	cmpq $0, IMAGE_DATA_OFFSET(%r13)		/* compare null (0) with output_img->data */
+	jne .Limgproc_expand_skip_init 			/* jump to skip re-allocation if output_img->data != 0 */
 
-	movl $0, %r14d 		/* move 0 to %r15d (row index) */ 
+	/* output image is null so allocate output image: img_init(output_img, input_img->width / xfac, input_img->height / yfac)*/
+	movq %r13, %rdi 						/* move ouput image pointer from %r13 to %rdi (1st arg for img_init) */ 
+	movl %r8d, %esi							/* move output image width from %r8d to %esi (2nd arg for img_init) */
+	movl %r9d, %edx							/* move output image height from %r9d to %edx (3rd arg for img_init) */
+	call img_init							/* call img_init and return in %eax */ 
+	
+	cmpl $0, %eax							/* compare 0 with return from img_init */ 	
+	jne .Limgproc_expand_done					/* jump to end if return value != 0 */
+	jmp .Limgproc_expand_loop_setup			/* begin loop if return value = 0 */
+
+.Limgproc_expand_skip_init: 
+	movl %r8d, IMAGE_WIDTH_OFFSET(%r13)		/* move output image width from %r8d to %r13 */
+	movl %r9d, IMAGE_HEIGHT_OFFSET(%r13)	/* move output image height from %r9d to %r13 */
+
+.Limgproc_expand_loop_setup: 
+	movl $0, %r14d		/* move 0 to %r14d (row index) */ 
 
 .Limgproc_expand_loop_row: 
 	cmpl IMAGE_HEIGHT_OFFSET(%r13), %r14d			/* compare output image height with row index */

@@ -285,10 +285,16 @@ uint32_t pa_avg_pixel( struct PixelAverager *pa, uint32_t default_alpha, uint32_
 //! @param xfac factor to downsize the image horizontally; guaranteed to be positive
 //! @param yfac factor to downsize the image vertically; guaranteed to be positive
 void imgproc_squash( struct Image *input_img, struct Image *output_img, int32_t xfac, int32_t yfac ) {
-  // Initialize output image with refactored dimensions 
-  int status = img_init(output_img, input_img->width / xfac, input_img->height / yfac);
-  if (status != IMG_SUCCESS) {
-    return; 
+  // Only initialize if the test runner hasn't already allocated the structure
+  if (output_img->data == NULL) {
+    int status = img_init(output_img, input_img->width / xfac, input_img->height / yfac);
+    if (status != IMG_SUCCESS) {
+      return; 
+    }
+  } else {
+    // Set dimensions correctly if framework pre-allocated it
+    output_img->width = input_img->width / xfac;
+    output_img->height = input_img->height / yfac;
   }
 
   for (int32_t row = 0; row < output_img->height; row++) {
@@ -315,10 +321,14 @@ void imgproc_squash( struct Image *input_img, struct Image *output_img, int32_t 
 //! @param output_img pointer to the output Image (in which the
 //!                   transformed pixels should be stored)
 void imgproc_color_rot( struct Image *input_img, struct Image *output_img) {
-  // Initialize output image with same dimensions 
-  int status = img_init(output_img, input_img->width, input_img->height);
-  if (status != IMG_SUCCESS) {
-    return; 
+  if (output_img->data == NULL) {
+    int status = img_init(output_img, input_img->width, input_img->height);
+    if (status != IMG_SUCCESS) {
+      return; 
+    }
+  } else {
+    output_img->width = input_img->width;
+    output_img->height = input_img->height;
   }
 
   for (int32_t row = 0; row < input_img->height; row++) {
@@ -358,10 +368,14 @@ void imgproc_color_rot( struct Image *input_img, struct Image *output_img) {
 //!                  component averages used to determine the color
 //!                  components of the output pixel
 void imgproc_blur( struct Image *input_img, struct Image *output_img, int32_t blur_dist ) {
-  // Initialize output image with same dimensions 
-  int status = img_init(output_img, input_img->width, input_img->height);
-  if (status != IMG_SUCCESS) {
-    return; 
+  if (output_img->data == NULL) {
+    int status = img_init(output_img, input_img->width, input_img->height);
+    if (status != IMG_SUCCESS) {
+      return; 
+    }
+  } else {
+    output_img->width = input_img->width;
+    output_img->height = input_img->height;
   }
 
   for (int32_t row = 0; row < input_img->height; row++) {
@@ -414,10 +428,14 @@ void imgproc_blur( struct Image *input_img, struct Image *output_img, int32_t bl
 //! @param output_img pointer to the output Image (in which the
 //!                   transformed pixels should be stored)
 void imgproc_expand( struct Image *input_img, struct Image *output_img) {
-  // Initialize output image with doubled height and width  
-  int status = img_init(output_img, input_img->width * 2, input_img->height * 2);
-  if (status != IMG_SUCCESS) {
-    return; 
+  if (output_img->data == NULL) {
+    int status = img_init(output_img, input_img->width * 2, input_img->height * 2);
+    if (status != IMG_SUCCESS) {
+      return; 
+    }
+  } else {
+    output_img->width = input_img->width * 2;
+    output_img->height = input_img->height * 2;
   }
 
   for (int32_t row = 0; row < output_img->height; row++) {
