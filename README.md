@@ -1,4 +1,4 @@
-# computer systems fundamentals @ johns hopkins university 
+# computer systems fundamentals @ johns hopkins
 a deep dive into computer systems from the programmer's perspective: data representation, memory, assembly language, cpu architecture, networks, and concurrency.
 
 instructor: david hovemeyer
